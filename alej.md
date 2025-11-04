@@ -55,12 +55,121 @@ Tras descargar estos archivos podemos ver el codigo de las 3 páginas, una vulne
 
 > [!IMPORTANT]  
 > Ver si puedo descargar archivos de la maquina como tal desde aqui
-> revisar todos los archivos y ver si podemos sacar identificaciones o algo 
 
+### APP 1
+Tras revisar esos archivos podemos ver todos los directorios (url) de las páginas web por lo que somos capaces de sacar todos sin utilizar ninguna herramienta externa como **ffuf**
+```
+re_path(
+        r'^register/$',
+        view=views.RegisterView.as_view(),
+        name='register'
+    ),
 
-ls
+    re_path(
+        r'^login/$',
+        view=views.LoginView.as_view(),
+        name='login'
+    ),
+    re_path(
+        r'^logout/$',
+        view=views.LogoutView.as_view(),
+        name='logout'
+    ),
+    re_path(
+        r'^profile/$',
+        view=views.ProfileView.as_view(),
+        name='profile'
+    ),
+    re_path(
+        r'^gallery/$',
+        view=views.GalleryView.as_view(),
+        name='gallery'
+    ),
+    re_path(
+        r'^gallery/image$',
+        view=views.GalleryImageView.as_view(),
+        name='galleryImage'
+    ), 
+```
+#### Información externa a los comprimidos
+Tras tratar de hacer login en http://app1.unie/users/login/ nos salta un error que nos da demasiada información debido a que en la app está puesto el `DEBUG = True`, por este error obtenemos mucha información como 
+```
+databases:
+{'default': {'ATOMIC_REQUESTS': True,
+             'AUTOCOMMIT': True,
+             'CONN_HEALTH_CHECKS': False,
+             'CONN_MAX_AGE': 0,
+             'ENGINE': 'django.db.backends.mysql',
+             'HOST': 'localhost',
+             'NAME': 'app1_database',
+             'OPTIONS': {},
+             'PASSWORD': '********************',
+             'PORT': '',
+             'TEST': {'CHARSET': None,
+                      'COLLATION': None,
+                      'MIGRATE': True,
+                      'MIRROR': None,
+                      'NAME': None},
+             'TIME_ZONE': None,
+             'USER': 'app1_user'}}
+```
+Revisando de nuevo en el .tar de app1 teniendo el nombre de la base de datos encontramos en `/var/www/html/app1/app1/settings/common.py`
+```
+DATABASES = {
+    # Raises ImproperlyConfigured exception if DATABASE_URL not in os.environ
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'app1_database',
+        'USER': 'app1_user',
+        'PASSWORD': 'app1_password',
+        'HOST': 'localhost',
+        'PORT': '',
+    }
+}
+```
+sabiendo esta dirección ahora en el resto de apps podemos encontrar lo mismo. 
 
+Ahora que tenemos la contraseña tratamos de conectarnos pero nos da error por lo que vamos a tratar de hacer fuerza bruta con **hydra**
 
+### APP 2 
+Aqui encontramos directamente el codigo sql que crea la tabla junto a los valores y que tipo son por lo que podríamos ver de hacer sql injection y no tendriamos que estar buscando como se llama la tabla y lo que contiene el usuario y contraseña porque ya tenemos como se llama
+```
+create table if not exists users (
+
+id char(36) not null default uuid(),
+
+name varchar(255) not null,
+
+email varchar(255) not null,
+
+passwd varchar(255) not null,
+
+primary key(id)
+
+);
+
+  
+
+create table if not exists books (
+
+id char(36) not null default uuid(),
+
+title varchar (155) not null,
+
+year_created YEAR not null,
+
+user_id char(36) not null,
+
+primary key (id),
+
+foreign key (user_id) references users (id)
+
+);
+```
+
+> [!WARNING]  
+> Recordemos que todas esta información la adquirimos sin acceder a la máquina directamente, cualquier ciberdelincuente puede acceder a esta información
+> 
 
 
 
