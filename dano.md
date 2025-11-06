@@ -12,7 +12,8 @@ Debido a la simpleza del usuario y contraseña admin / admin he logrado acceder 
 
 He conseguido acceder a http://app1.unie/static/ donde parece que esta alojado una carpeta con toda la información de la web, desde ahí he podido (sin iniciar sesión) todos los archivos que se habían subido desde múltiples cuentas 
 
-QUIERO REVISAR SI AL INICIAR SESIÓN MANTIENE LA MISMA COOKIE
+**QUIERO REVISAR SI AL INICIAR SESIÓN MANTIENE LA MISMA COOKIE**
+**REVISAR APP1 CON BURPSUITE (VER PERFIL)**
 
 **App2**
 
@@ -33,3 +34,4 @@ Conseguimos esta respuesta: El token de sesión
 
 "message":"successfully",
 "token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6Ijc5OTBiMmRhLTg2NWEtMTFlZi04YzJjLTAwMGMyOTY4MjFjNSJ9.7wLA68AFPXa02q6Pl46TAxwIDvvApiOWISHjbO08P-0"
+
