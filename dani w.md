@@ -45,3 +45,9 @@ pagina web 2
 no info revisar puerto
 ```
 
+```
+/opp
+/html
+tener burpsuite activado
+```
+
