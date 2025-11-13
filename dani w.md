@@ -49,5 +49,8 @@ no info revisar puerto
 /opp
 /html
 tener burpsuite activado
+
+app2 es una api, que hay que mandar como json. iniciar sesion antes
 ```
+
 
