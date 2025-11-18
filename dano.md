@@ -39,3 +39,9 @@ Gracias al token de sesión y el uso de la cabecera siguiente conseguimos accede
 
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6Ijc5OTBiMmRhLTg2NWEtMTFlZi04YzJjLTAwMGMyOTY4MjFjNSJ9.7wLA68AFPXa02q6Pl46TAxwIDvvApiOWISHjbO08P-0
 
+**PISTAS**
+
+App2 hay un fallo llamado php type juggling 
+App1 o App3 hay dos fallos SSTI y RCE UNPICKLE
+
+
