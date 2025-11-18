@@ -50,7 +50,10 @@ no info revisar puerto
 /html
 tener burpsuite activado
 
-app2 es una api, que hay que mandar como json. iniciar sesion antes
+app2 es una api, que hay que mandar como json. iniciar sesion antes. en app 2 hay un fallo que se llama php type juggling
+app 3, tenemos ssti
+app 1 tenemos rce unpickle
 ```
+
 
 
