@@ -174,8 +174,12 @@ Esta situación permite a un atacante:
 - Restringir el listado de directorios en servidores web (`Options -Indexes` en Apache, por ejemplo).
 - Auditar periódicamente los servicios expuestos y sus contenidos.
 
+
 ## Conclusión
 
 Esta vulnerabilidad, aparentemente simple, abre la puerta a toda una cadena de ataques posteriores. El hecho de que un archivo de respaldo esté accesible públicamente no solo revela credenciales, sino que también demuestra una falta de higiene en la gestión del entorno de desarrollo y despliegue, lo que suele indicar la presencia de otras debilidades.
 
 Esta fase representa tanto la identificación como la explotación efectiva de una vulnerabilidad de configuración crítica.
+
+> [!IMPORTANT]  
+> Solo APP1
