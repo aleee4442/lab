@@ -55,7 +55,7 @@ app 3, tenemos ssti
 app 1 tenemos rce unpickle
 ```
 
-
+---
 
 # Vulnerabilidad 1: Exposición Pública de Copias de Seguridad del Código Fuente
 
@@ -290,5 +290,6 @@ sin tener que adivinar nombres de tablas o columnas.
 2. Usar sistemas de control de versiones privados para gestionar el código fuente y los esquemas de base de datos.
 3. Auditar regularmente los servicios expuestos para detectar contenido sensible.
 4. Restringir el listado de directorios en servidores web (en Apache/Nginx, evita `Options Indexes`; en Python SimpleHTTPServer, no lo uses en producción).
+
 
 
