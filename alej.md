@@ -60,6 +60,22 @@ pagina web 2
 no info revisar puerto
 ```
 
+udp
+```
+  alee   ~  sudo nmap -sU 192.168.207.130
+Deploying root access for alee. Password pls:
+Starting Nmap 7.98 ( https://nmap.org ) at 2025-12-02 09:13 +0100
+Nmap scan report for app1.unie (192.168.207.130)
+Host is up (0.0011s latency).
+Not shown: 999 closed udp ports (port-unreach)
+PORT     STATE         SERVICE
+5353/udp open|filtered zeroconf
+MAC Address: 00:0C:29:12:78:D3 (VMware)
+
+Nmap done: 1 IP address (1 host up) scanned in 1009.02 seconds
+  alee   ~ 
+```
+
 # Puertos
 ## 9001
 al entrar a http://192.168.207.130:9001/ podemos ver los directorios y vemos que tenemos para descargar sin uniciar sesión los siguientes archivos
@@ -144,23 +160,7 @@ DATABASES = {
 ```
 sabiendo esta dirección ahora en el resto de apps podemos encontrar lo mismo. 
 
-Ahora que tenemos la contraseña tratamos de conectarnos pero nos da error por lo que vamos a tratar de hacer fuerza bruta con **hydra**
-```
-hydra -l admin -P ~/wordlists/rockyou.txt app1.unie http-get-form "/users/login/:username=admin&password=^PASS^:F=Invalid" -vV -f -t 16
-```
-Tuve que elegir el metodo get ya que el post estaba protegido por CSRF, la wordlist que he utilizado es rockyou (una bastante conocida)
-
-1. **Credenciales válidas**: `admin:admin`
-    
-2. **Vulnerabilidad**: El endpoint GET `/users/login/` expone el formulario sin protección CSRF
-    
-3. **Problema del servidor**: Login exitoso causa error 500 interno
-    
-4. **Evidencia**:
-    
-    - Status 500 + mensaje "You are now logged in!" en cookie
-        
-    - Cookie `messages` contiene confirmación de login exitoso
+Como en /users/login independientemente de qe¡ue esté bien o mal te redirige tuve la idea de ir al panel de administrador donde no hay redireccion y podemos comprobarlo lo unico que tambien está protegido por CSRF por lo que cree un script (.py) el cual pasándole la wordlist rockyou.txt sacamos que la contraseña es admin, una contraseña poco segura
 
 ### APP 2 
 Aqui encontramos directamente el codigo sql que crea la tabla junto a los valores y que tipo son por lo que podríamos ver de hacer sql injection y no tendriamos que estar buscando como se llama la tabla y lo que contiene el usuario y contraseña porque ya tenemos como se llama
