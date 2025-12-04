@@ -35,9 +35,14 @@ Para cada vulnerabilidad identificada, hemos documentado no solo su explotación
 
 ## Fase 1: Reconocimiento y Enumeración
 
-### 1.1 Escaneo de Puertos con Nmap
 
-**Comando Ejecutado Y Resultados Obtenidos:**
+**Comando Ejecutado:**
+
+```bash
+nmap 192.168.88.128
+```
+
+**Resultados Obtenidos:**
 
 ![Nmap a UBUNTU](photos/NMAP.png)
 
