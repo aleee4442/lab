@@ -45,7 +45,11 @@ Para cada vulnerabilidad identificada, hemos documentado no solo su explotación
 | Permisos y grupos<br>mal configurados       | máquina   | Crítico |
 | Permisos mal configurados<br>para SQL       | máquina   | Grave   |
 | Tráfico sin cifrar y<br>falta de protección | app1,2,3  | Bajo    |
-
+| Compromiso total de la aplicación           | app1      | Crítico |
+| Directory listing y acceso no autorizado    | app1,2,3  | Alto    |
+| Cifrado con clave embebida en el cliente    | app1      | Crítico |
+| Compromiso total de la aplicación           | app2      | Crítico |
+| Vulnerabilidad token (uso del Bearer)       | app2      | Grave   |
 ---
 
 ## Fase 1: Reconocimiento y Enumeración
@@ -293,6 +297,25 @@ echo "Payload enviado. Revisa tu listener..."
 ```
 y confirmamos que hemos conseguido la reverse shell
 ![[Pasted image 20251204164328.png]]
+
+### Compromiso total de la aplicación 
+
+Durante las pruebas se detectó que la aplicación http://app1.unie/ permite el acceso directo a la ruta http://app1.unie/admin/ sin necesidad de autenticación previa. Una vez en dicha ruta, el sistema acepta las credenciales por defecto admin / admin, permitiendo el acceso completo al panel de administración.
+
+El uso de credenciales por defecto y el acceso directo al panel de administración permiten a un atacante tomar control total de la aplicación: gestión de usuarios, modificación de datos, posible subida de archivos maliciosos y alteración de la configuración. Supone un compromiso completo de la aplicación.
+
+### Directory listing y acceso no autorizado 
+
+Se ha observado que la ruta http://app1.unie/static/ muestra un listado de directorios y archivos accesible sin autenticación. Desde esta ubicación es posible visualizar y descargar ficheros subidos por múltiples usuarios, incluyendo potencialmente información sensible.
+
+Esta vulnerabilidad supone una fuga directa de información. Un atacante puede acceder a documentos, imágenes u otros archivos pertenecientes a distintos usuarios sin ningún tipo de control de acceso. Se ve comprometida la confidencialidad de la información y puede implicar incumplimiento de normativas de protección de datos.
+
+### Cifrado con clave embebida en el cliente    
+
+A través del análisis del tráfico con BurpSuite se ha comprobado que el sistema utiliza un token de inicio de sesión que aparentemente está cifrado. Sin embargo, durante la revisión del código se ha identificado que la clave de cifrado utilizada para proteger el token se encuentra embebida en el propio código.
+
+La presencia de la clave de cifrado en el código hace que el cifrado sea fácilmente reversible. Un atacante puede obtener la clave, descifrar tokens de sesión y, potencialmente, generar o modificar tokens válidos. Esto afecta directamente a la autenticación y a la integridad de las sesiones, permitiendo la suplantación de usuarios y el acceso no autorizado. 
+
 ## APP 2 
 
 ### PHP type juggling
@@ -308,7 +331,48 @@ nos devuelve lo correcto por lo que confirmamos que hay **PHP type juggling**
 ![[Pasted image 20251203101135.png]]
 (todo esto se puede hacer con la petición de login encontrada en http://app2.unie/docs/ utilizando burp suite)
 
+### Compromiso total de la aplicación 
+
+En la documentación accesible en http://app2.unie/docs/ se identificó el endpoint de autenticación http://app2.unie/v2/users/login. Mediante el uso de BurpSuite, se envió una petición HTTP con el siguiente cuerpo JSON:
+```
+Content-Type: application/json
+Content-Length: 56
+
+{
+  "email": "admin@app2.unie",
+  "password": "admin"
+}
+```
+El sistema respondió con un mensaje de éxito y devolvió un token de sesión (JWT) válido. 
+```
+"message":"successfully", "token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6Ijc5OTBiMmRhLTg2NWEtMTFlZi04YzJjLTAwMGMyOTY4MjFjNSJ9.7wLA68AFPXa02q6Pl46TAxwIDvvApiOWISHjbO08P-0"
+```
+El uso de credenciales triviales (admin@app2.unie / admin) para una cuenta de administrador permite a un atacante autenticarse fácilmente sin necesidad de técnicas avanzadas. Esto concede acceso completo a las funcionalidades de administración de app2, comprometiendo la integridad, disponibilidad y confidencialidad de los datos gestionados por la aplicación.
+
+### Directory listing y acceso no autorizado 
+
+Se ha observado que la ruta http://app1.unie/static/ muestra un listado de directorios y archivos accesible sin autenticación. Desde esta ubicación es posible visualizar y descargar ficheros subidos por múltiples usuarios, incluyendo potencialmente información sensible.
+
+Esta vulnerabilidad supone una fuga directa de información. Un atacante puede acceder a documentos, imágenes u otros archivos pertenecientes a distintos usuarios sin ningún tipo de control de acceso. Se ve comprometida la confidencialidad de la información y puede implicar incumplimiento de normativas de protección de datos.
+
+### Vulnerabilidad token (uso del Bearer) 
+
+Una vez obtenido el token de sesión JWT, se comprobó que, añadiendo la cabecera: 
+```
+Authorization: Bearer <token_obtenido> Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6Ijc5OTBiMmRhLTg2NWEtMTFlZi04YzJjLTAwMGMyOTY4MjFjNSJ9.7wLA68AFPXa02q6Pl46TAxwIDvvApiOWISHjbO08P-0
+```
+es posible acceder a los endpoints http://app2.unie/v2/users/ y http://app2.unie/v2/books/. Estos endpoints devuelven información de usuarios y otros recursos sin restricciones adicionales aparentes.
+
+El uso de un único token de sesión con altos privilegios permite el acceso masivo a datos sensibles (usuarios, posiblemente datos personales y contenidos internos). La ausencia de controles de autorización más granulares (roles, scopes, separación de privilegios) amplifica el impacto de la compromisión del token. Cualquier atacante que obtenga este token puede consultar y manipular información crítica.
+
 ## APP 3
+
+### Directory listing y acceso no autorizado 
+
+Se ha observado que la ruta http://app1.unie/static/ muestra un listado de directorios y archivos accesible sin autenticación. Desde esta ubicación es posible visualizar y descargar ficheros subidos por múltiples usuarios, incluyendo potencialmente información sensible.
+
+Esta vulnerabilidad supone una fuga directa de información. Un atacante puede acceder a documentos, imágenes u otros archivos pertenecientes a distintos usuarios sin ningún tipo de control de acceso. Se ve comprometida la confidencialidad de la información y puede implicar incumplimiento de normativas de protección de datos.
+
 ### SSTI
 Vemos que el código malicioso está en la linea 70, exactamente con la creación del usuario
 ![[Pasted image 20251204172217.png]]
