@@ -93,8 +93,6 @@ pagina web 2
 55555/tcp closed unknown
 no info revisar puerto
 ```
-![Descripción de la imagen](photos/Pasted%20image%2020251118120436.png)
-
 ```
 /opp
 /html
@@ -207,38 +205,9 @@ Esta situación permite a un atacante:
 - Explorar lógica de negocio y encontrar nuevas vulnerabilidades (por ejemplo, lógica de autenticación defectuosa, funciones inseguras).
 - Conectar directamente a la base de datos si esta acepta conexiones remotas, o usar las credenciales para ataques internos si se consigue acceso al sistema.
 
-**Nota:** En el enunciado de la práctica se proporcionan las credenciales de la base de datos, lo que confirma que estas coinciden exactamente con las extraídas del archivo de configuración. Esto demuestra que el archivo es actual y funcional.
-
-## Clasificación de la Vulnerabilidad
-
-- **Tipo:** Exposición de información sensible (CWE-200)
-- **Vector:** Configuración insegura del servidor web
-- **Gravedad:** Crítica (CVSS ≈ 9.1)
-- **Requisitos para explotar:** Solo acceso de red al puerto 9001.
-
-## Recomendaciones
-
-- Nunca exponer copias de seguridad en servidores web accesibles públicamente.
-- Usar sistemas de control de versiones (como Git) con acceso restringido para gestionar el código.
-- Almacenar credenciales en variables de entorno o gestores de secretos, y nunca en archivos de código fuente.
-- Restringir el listado de directorios en servidores web (`Options -Indexes` en Apache, por ejemplo).
-- Auditar periódicamente los servicios expuestos y sus contenidos.
-
-
 ## Conclusión
 
 Esta vulnerabilidad, aparentemente simple, abre la puerta a toda una cadena de ataques posteriores. El hecho de que un archivo de respaldo esté accesible públicamente no solo revela credenciales, sino que también demuestra una falta de higiene en la gestión del entorno de desarrollo y despliegue, lo que suele indicar la presencia de otras debilidades.
-
-Esta fase representa tanto la identificación como la explotación efectiva de una vulnerabilidad de configuración crítica.
-
-> [!IMPORTANT]  
-> Solo APP1
-
----
-
-
-> [!IMPORTANT]
-> Para APP2
 
 
 # Vulnerabilidad 2: Exposición Pública del Esquema de Base de Datos de App2
@@ -317,30 +286,3 @@ CREATE TABLE books (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 ```
-
-**¿Por qué es útil para un atacante?**  
-Ahora sabe que puede intentar un ataque de inyección SQL en cualquier punto de entrada de App2 (por ejemplo, en un campo de login o búsqueda) usando consultas como:
-
-```sql
-' UNION SELECT id, username, email, passwd FROM users--
-```
-
-sin tener que adivinar nombres de tablas o columnas.
-
-## Impacto
-
-- **Gravedad:** Alta/Crítica.
-- **Vector:** Configuración insegura del servidor (exposición de archivos sensibles).
-- **Requisitos para explotar:** Solo acceso de red al puerto 9001.
-- **Consecuencias:** Facilita la explotación de otras vulnerabilidades (como SQLi) y reduce drásticamente el tiempo y ruido de un ataque real.
-
-## Recomendaciones
-
-1. Nunca exponer archivos de respaldo en servidores accesibles públicamente.
-2. Usar sistemas de control de versiones privados para gestionar el código fuente y los esquemas de base de datos.
-3. Auditar regularmente los servicios expuestos para detectar contenido sensible.
-4. Restringir el listado de directorios en servidores web (en Apache/Nginx, evita `Options Indexes`; en Python SimpleHTTPServer, no lo uses en producción).
-
-
-
->>>>>>> 4a1d57af2bc394f0bcf287820fef8f1f185d6397
