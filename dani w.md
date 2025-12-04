@@ -93,7 +93,7 @@ pagina web 2
 55555/tcp closed unknown
 no info revisar puerto
 ```
-
+https://github.com/aleee4442/lab/blob/main/photos/Pasted%20image%2020251118120436.png
 ```
 /opp
 /html
