@@ -219,6 +219,7 @@ databases:
 ```
 
 Como en **/users/login** independientemente de que esté bien o mal te redirige tuve la idea de ir al panel de administrador donde no hay redirección y podemos hacer fuerza bruta. Lo único que también está protegido por CSRF por lo que cree un script (bruteforce.py) el cual pasándola la wordlist rockyou.txt sacamos que la contraseña es admin, una contraseña poco segura.
+![[Pasted image 20251204201834.png]]
 
 ### RCE Unpickle
 El codigo relacionado con esto se encuentrea en /var/www/html/app1/users/views.py , exactamente en la linea 84 de la clase profileview
