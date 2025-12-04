@@ -17,6 +17,8 @@ app1(o 3, no recuerda) hay 2 fallos:
 - RCE Unpickle
 cree: ssti -> app3, rce unpiclke -> app 1
 
+explicar el tema de los permisos sudo
+
 # NMAP 
 ## TCP
 Puertos abiertos:
@@ -320,8 +322,26 @@ echo "Payload enviado. Revisa tu listener..."
 ```
 y confirmamos que hemos conseguido la reverse shell
 ![[Pasted image 20251204164328.png]]
+# SSTI
+Vemos que el codigo malicioso está en la linea 70, exactamente con la creacion del usuario
+![[Pasted image 20251204172217.png]]
+Nos creamos un usuario donde el nombre sea `{{7*7}}` y al iniciar sesion vemos que en el nombre sale 49
+![[Pasted image 20251204190344.png]]
+pero al intentar otro tipo de SSTI (como `{{ cycler.__globals__.os.popen('id').read() }}`) nos da internal server error (como cuando era correcto lo que ponemos en SQL injection)
+![[Pasted image 20251204190517.png]]
+![[Pasted image 20251204190531.png]]
 
-
+# SQL Injection
+En la app3 hay sql injection ya que cuando ponemos 
+```
+`a' OR '1'='1' --`
+```
+de usuario y lo que sea de contraseña nos da un internal error
+![[Pasted image 20251204183003.png]]
+en vez de indicar que ha fallado el inicio de sesión
+![[Pasted image 20251204183035.png]]
+Esto también lo confirmamos ya que cuando probamos con order by nos salta el internal error con order by 6
+![[Pasted image 20251204184014.png]]
 
 > [!NOTE]  
 > Highlights information that users should take into account, even when skimming.
