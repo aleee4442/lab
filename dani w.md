@@ -93,7 +93,8 @@ pagina web 2
 55555/tcp closed unknown
 no info revisar puerto
 ```
-![Descripción de la imagen](Pasted image 20251118120436.png)
+![Descripción de la imagen](photos/Pasted%20image%2020251118120436.png)
+
 ```
 /opp
 /html
