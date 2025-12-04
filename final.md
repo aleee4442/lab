@@ -351,7 +351,7 @@ El uso de credenciales triviales (admin@app2.unie / admin) para una cuenta de ad
 
 ### Directory listing y acceso no autorizado 
 
-Se ha observado que la ruta http://app1.unie/static/ muestra un listado de directorios y archivos accesible sin autenticación. Desde esta ubicación es posible visualizar y descargar ficheros subidos por múltiples usuarios, incluyendo potencialmente información sensible.
+Se ha observado que la ruta http://app2.unie/static/ muestra un listado de directorios y archivos accesible sin autenticación. Desde esta ubicación es posible visualizar y descargar ficheros subidos por múltiples usuarios, incluyendo potencialmente información sensible.
 
 Esta vulnerabilidad supone una fuga directa de información. Un atacante puede acceder a documentos, imágenes u otros archivos pertenecientes a distintos usuarios sin ningún tipo de control de acceso. Se ve comprometida la confidencialidad de la información y puede implicar incumplimiento de normativas de protección de datos.
 
@@ -369,7 +369,7 @@ El uso de un único token de sesión con altos privilegios permite el acceso mas
 
 ### Directory listing y acceso no autorizado 
 
-Se ha observado que la ruta http://app1.unie/static/ muestra un listado de directorios y archivos accesible sin autenticación. Desde esta ubicación es posible visualizar y descargar ficheros subidos por múltiples usuarios, incluyendo potencialmente información sensible.
+Se ha observado que la ruta http://app3.unie/static/ muestra un listado de directorios y archivos accesible sin autenticación. Desde esta ubicación es posible visualizar y descargar ficheros subidos por múltiples usuarios, incluyendo potencialmente información sensible.
 
 Esta vulnerabilidad supone una fuga directa de información. Un atacante puede acceder a documentos, imágenes u otros archivos pertenecientes a distintos usuarios sin ningún tipo de control de acceso. Se ve comprometida la confidencialidad de la información y puede implicar incumplimiento de normativas de protección de datos.
 
