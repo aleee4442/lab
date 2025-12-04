@@ -84,9 +84,7 @@ nmap 192.168.88.128
 
 ![Nmap a UBUNTU](photos/NMAP.png)
 
-**Escaneo UDP:**
 
-![Escaneo UDP](photos/Pasted%20image%2020251203110814.png)
 
 ### Análisis Detallado por Puerto
 
