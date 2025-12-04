@@ -24,9 +24,9 @@ Nuestra misión ha sido emular las tácticas de un atacante real, aplicando meto
 
 Hemos seguido una metodología en fases, comenzando con el reconocimiento pasivo y activo del objetivo, identificando servicios expuestos, puertos abiertos y tecnologías subyacentes. Posteriormente, hemos realizado una enumeración exhaustiva de cada aplicación, buscando vectores de ataque como:
 
-- **Exposición de información sensible:** Código fuente, credenciales, esquemas de base de datos
-- **Vulnerabilidades de inyección:** SQL, SSTI, RCE, comandos
-- **Fallos de autenticación y autorización:** Accesos no controlados, bypass de login
-- **Errores de configuración:** Debug activado, backups accesibles públicamente
-
+- **Exposición de información sensible:** Código fuente, credenciales, esquemas de base de datos...
+- **Vulnerabilidades de inyección:** SQL, SSTI, RCE, comandos...
+- **Fallos de autenticación y autorización:** Accesos no controlados, bypass de login...
+- **Errores de configuración:** Debug activado, backups accesibles públicamente...
 Para cada vulnerabilidad identificada, hemos documentado no solo su explotación técnica, sino también el impacto potencial en un entorno real. De las mitigaciones nos centraremos en la siguiente práctica.
+
