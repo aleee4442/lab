@@ -164,3 +164,4 @@ nmap 192.168.88.128
 ## Vulnerabilidades Identificadas
 
 A continuación se presentan las vulnerabilidades descubiertas durante el proceso de análisis y explotación del objetivo:
+
