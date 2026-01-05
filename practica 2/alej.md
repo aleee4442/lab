@@ -25,17 +25,47 @@ Para que solo tengamos conectividad de forma local
 ![[Pasted image 20251230221549.png]]
 
 ## RCE UNPICKLE
-En vez de usar pickle vamos a usar json 
+En vez de usar pickle vamos a usar **json** 
+### Quitamos el import pickle y añadimos el json
 ```python
 import json, base64, os, uuid
 ```
-Quitamos el import pickle y añadimos el json
+### Cambiamos la linea 43 a:
 ```python
-context['usernameSlug'] = base64.b64encode(pickle.dumps(request.user.username)).decode('ascii')
+context['usernameSlug'] = base64.b64encode(json.dumps(request.user.username).encode()).decode('ascii')
+```
+### Cambiamos la clase ProfileView por:
+```python
+class ProfileView(LoginRequiredMixin, FormView, View):
+    template_name = 'users/profile.html'
+
+    def get(self, request, *args, **kwargs):
+        return redirect('home')
+
+    def post(self, request, *args, **kwargs):
+        usernameSlug = request.POST.get('usernameSlug')
+
+        try:
+            username = json.loads(base64.b64decode(usernameSlug).decode('utf-8'))
+            
+            # Validación adicional de seguridad
+            if not isinstance(username, str):
+                username = "invalid_user"
+                
+        except (json.JSONDecodeError, ValueError, TypeError, UnicodeDecodeError) as e:
+            # En caso de error, usar valor por defecto
+            username = "error_decoding"
+            print(f"Error decodificando usernameSlug: {e}")
+
+        context = {
+            'username': username,
+            'usernameSlug': usernameSlug
+        }
+
+        return render(request, self.template_name, context)
 ```
 
-
-
+Con esto confirmamos que ya no se usa pickle y cuando tratamos de hacer el RCE de nuevo vemos que no nos llega la terminal y cuando accedemos al perfil si que nos llega el nombre de usuario por lo que se ha parcheado
 
 
 
@@ -56,8 +86,7 @@ SESSION_COOKIE_SECURE = True
 | -------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Cookies inseguras (HttpOnly, Secure, SameSite)** | Configurar en settings de Django y Flask, forzar HTTPS.                     |
 | **Contraseñas débiles / credenciales por defecto** | Implementar política de contraseñas fuertes, eliminar cuentas por defecto.  |
-| **RCE via Pickle en App1**                         | Reemplazar `pickle.loads()` por serialización segura (JSON).                |
-| **SQL Injection en App2 y App3**                   | Usar consultas parametrizadas, ORM correctamente.                           |
+| **SQL Injection en App3**                          | Usar consultas parametrizadas, ORM correctamente.                           |
 | **SSTI en App3**                                   | Sanitizar entradas, evitar `render_template_string()` con datos de usuario. |
 | **Buffer Overflow en App5**                        | Usar funciones seguras (`fgets` en lugar de `scanf`), validar longitud.     |
 | **Permisos sudo mal configurados**                 | Restringir `sudo` al mínimo necesario, usar `visudo` para editar.           |
@@ -67,7 +96,6 @@ SESSION_COOKIE_SECURE = True
 | **FTP anónimo**                                    | Deshabilitar acceso anónimo, usar SFTP/SSH.                                 |
 | **Cronjobs inseguros**                             | Revisar que no expongan datos sensibles, limitar permisos.                  |
 
----
 
 ## 🛡️ **B. Medidas Adicionales para Nota de 10 (según enunciado)**
 
@@ -87,90 +115,49 @@ sudo ufw default deny incoming
 ### **2. Gestión y Monitorización de Logs (ELK Stack o Grafana + Loki)**
 
 - Configurar logs centralizados para Apache, Django, Flask, MySQL.
-    
 - Alertas en caso de:
-    
     - Múltiples intentos de login fallidos.
-        
     - Accesos a rutas sensibles (`/admin`, `/backup`).
-        
     - Patrones de SQL Injection o SSTI en logs.
-        
-
 ### **3. Recuperación ante Desastres**
-
 - Scripts de backup automáticos y encriptados.
-    
 - Rotación de backups (diario/semanal).
-    
-- Almacenamiento externo seguro (ej: S3, servidor interno).
-    
+- Almacenamiento externo seguro (ej: S3, servidor interno)
 - Pruebas de restauración periódicas.
-    
 
 ---
 
 ## 📄 **C. Estructura del Informe de la Práctica 2**
 
 1. **Introducción**
-    
     - Objetivo: mitigar vulnerabilidades de la práctica 1.
-        
     - Metodología aplicada.
-        
 2. **Vulnerabilidades Mitigadas**
-    
     - Tabla resumen con vulnerabilidad, mitigación y evidencia (capturas de código/config).
-        
     - Por cada vulnerabilidad:
-        
         - Descripción breve.
-            
         - Código/configuración antes/después.
-            
         - Prueba de que sigue funcional.
-            
 3. **Medidas Adicionales Implementadas**
-    
     - Firewall (captura de reglas UFW).
-        
     - Sistema de logs y alertas (captura de dashboard Grafana).
-        
     - Plan de backup y recuperación (script y ejemplo de backup).
-        
 4. **Validación de Funcionalidad**
-    
     - Checklist de funcionalidades requeridas (App1, App2, App3, App4, App5, SSH, FTP, Cron, MariaDB).
-        
     - Pruebas manuales/automáticas.
-        
 5. **Conclusión**
-    
     - Resumen de mejoras.
-        
     - Lecciones aprendidas.
-        
 6. **Anexos**
-    
     - Script de entrega generado.
-        
     - Configuraciones completas.
-        
     - Enlaces a repositorio de código.
-        
-
----
 
 ## 💡 **D. Consejos Clave**
 
 - **No elimines servicios**, solo sécalos correctamente.
-    
 - **Usa variables de entorno** para secrets.
-    
 - **Documenta cada cambio** con capturas claras.
-    
 - **Prueba que todo sigue funcionando** tras cada modificación.
-    
 - **Si usas HTTPS**, redirige todo HTTP a HTTPS.
-    
 - **Para la entrega**, sigue el script del profesor al pie de la letra.

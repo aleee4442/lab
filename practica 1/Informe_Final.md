@@ -444,6 +444,9 @@ LINEA=$(grep -n "action=\"/users/profile/\"" home_autenticado.html | cut -d: -f1
 PROFILE_CSRF=$(cat home_autenticado.html | tr '>' '\n' | grep "csrfmiddlewaretoken" | sed 's/.*value="//' | sed 's/".*//')
 ```
 
+> [!WARNING]  
+> Tienes que copiar el csrf que salga en pantalla y poner PROFILE_CSRF="csrf" como en la imagen
+
 ![Extracción de CSRF](photos/Pasted%20image%2020251204163818.png)
 
 **4. Configurar listener:**
