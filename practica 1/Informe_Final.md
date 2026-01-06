@@ -690,7 +690,7 @@ y de contraseña cualquier cosa nos salta el sql injection. También se puede co
 #### Código Vulnerable
 
 ```php
-$query = "SELECT * FROM books WHERE user_id = " . $_GET['user_id'];
+query = "select * from user where user='%s' and password='%s'" % (form.user.data, form.password.data)
 ```
 
 #### Impacto
