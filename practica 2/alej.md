@@ -93,7 +93,7 @@ Con esto confirmamos que ya no se usa pickle y cuando tratamos de hacer el RCE d
 ## SQL injection y XSS
 El sql injection se encontraba en el login, el cual se encuentra en `/var/www/html/app3/app/views.py`
 cambiamos la funcion por
-```
+```python
 @app.route('/login/', methods = ['GET', 'POST'])
 def login():
     if g.user is not None and g.user.is_authenticated:
