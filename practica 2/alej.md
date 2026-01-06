@@ -3,8 +3,30 @@ codigo paginas web
 /var/www/html
 ```
 
+# Todas las APPS
+## Cambio de contraseña
+Para hacer el cambio de contraseña lo vamos a hacer usando el propio django. Para cada app tenemos que ir a donde se encuentra el codigo de cada app `cd /var/www/html/app1` y ejecutamos en venv con 
+```
+./ENV/bin/python manage.py shell
+```
 
+una vez dentro de aqui ponemos lo siguiente (sin poner la misma contraseña en cada app)
+```
+from django.contrib.auth.hashers import make_password
+from users.models import Person
+
+admin_user = Person.objects.get(username='admin')  
+admin_user.password = make_password('6qxK{1?D5D3Y')
+admin_user.save()
+```
+Las contraseñas para cada app son: 
+- **APP1**: 6qxK{1?D5D3Y
+- **APP2**: ]2aSEja#y7d3
+- **APP3**: yXv1f=$4`_33
+Una vez intentas iniciar sesión ya no funciona con admin admin y tienes que poner la contrasñea establecida
 # APP 1
+
+
 ## /var/www/html/app1/app1/settings/local.py
 
 ```
@@ -67,6 +89,32 @@ class ProfileView(LoginRequiredMixin, FormView, View):
 
 Con esto confirmamos que ya no se usa pickle y cuando tratamos de hacer el RCE de nuevo vemos que no nos llega la terminal y cuando accedemos al perfil si que nos llega el nombre de usuario por lo que se ha parcheado
 
+# APP3
+## SQL injection y XSS
+El sql injection se encontraba en el login, el cual se encuentra en `/var/www/html/app3/app/views.py`
+cambiamos la funcion por
+```
+@app.route('/login/', methods = ['GET', 'POST'])
+def login():
+    if g.user is not None and g.user.is_authenticated:
+        return redirect(url_for('index'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        # cambiado a ORM de SQLAlchemy para prevenir SQL Injection
+        user = User.query.filter_by(user=form.user.data, password=form.password.data).first()
+        
+        if not user:
+            flash('Inicio de sesion incorrecto')
+        else:
+            login_user(user)
+            # cambiado render_template en lugar de render_template_string para prevenir XSS
+            return render_template('index.html', name=user.name)
+    
+    return render_template('login.html', 
+        title = 'Sign In',
+        form = form)    
+```
+
 
 
 
@@ -85,8 +133,7 @@ SESSION_COOKIE_SECURE = True
 | Vulnerabilidad                                     | Mitigación Propuesta                                                        |
 | -------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Cookies inseguras (HttpOnly, Secure, SameSite)** | Configurar en settings de Django y Flask, forzar HTTPS.                     |
-| **Contraseñas débiles / credenciales por defecto** | Implementar política de contraseñas fuertes, eliminar cuentas por defecto.  |
-| **SQL Injection en App3**                          | Usar consultas parametrizadas, ORM correctamente.                           |
+| **SQL Injection en App2**                          |                                                                             |
 | **SSTI en App3**                                   | Sanitizar entradas, evitar `render_template_string()` con datos de usuario. |
 | **Buffer Overflow en App5**                        | Usar funciones seguras (`fgets` en lugar de `scanf`), validar longitud.     |
 | **Permisos sudo mal configurados**                 | Restringir `sudo` al mínimo necesario, usar `visudo` para editar.           |
@@ -96,68 +143,3 @@ SESSION_COOKIE_SECURE = True
 | **FTP anónimo**                                    | Deshabilitar acceso anónimo, usar SFTP/SSH.                                 |
 | **Cronjobs inseguros**                             | Revisar que no expongan datos sensibles, limitar permisos.                  |
 
-
-## 🛡️ **B. Medidas Adicionales para Nota de 10 (según enunciado)**
-
-### **1. Despliegue de Firewall (UFW)**
-
-bash
-
-sudo ufw enable
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP (redirigir a HTTPS)
-sudo ufw allow 443/tcp   # HTTPS
-sudo ufw allow 21/tcp    # FTP
-sudo ufw allow 5555/tcp  # App5
-sudo ufw deny 9001       # Solo local (no público)
-sudo ufw default deny incoming
-
-### **2. Gestión y Monitorización de Logs (ELK Stack o Grafana + Loki)**
-
-- Configurar logs centralizados para Apache, Django, Flask, MySQL.
-- Alertas en caso de:
-    - Múltiples intentos de login fallidos.
-    - Accesos a rutas sensibles (`/admin`, `/backup`).
-    - Patrones de SQL Injection o SSTI en logs.
-### **3. Recuperación ante Desastres**
-- Scripts de backup automáticos y encriptados.
-- Rotación de backups (diario/semanal).
-- Almacenamiento externo seguro (ej: S3, servidor interno)
-- Pruebas de restauración periódicas.
-
----
-
-## 📄 **C. Estructura del Informe de la Práctica 2**
-
-1. **Introducción**
-    - Objetivo: mitigar vulnerabilidades de la práctica 1.
-    - Metodología aplicada.
-2. **Vulnerabilidades Mitigadas**
-    - Tabla resumen con vulnerabilidad, mitigación y evidencia (capturas de código/config).
-    - Por cada vulnerabilidad:
-        - Descripción breve.
-        - Código/configuración antes/después.
-        - Prueba de que sigue funcional.
-3. **Medidas Adicionales Implementadas**
-    - Firewall (captura de reglas UFW).
-    - Sistema de logs y alertas (captura de dashboard Grafana).
-    - Plan de backup y recuperación (script y ejemplo de backup).
-4. **Validación de Funcionalidad**
-    - Checklist de funcionalidades requeridas (App1, App2, App3, App4, App5, SSH, FTP, Cron, MariaDB).
-    - Pruebas manuales/automáticas.
-5. **Conclusión**
-    - Resumen de mejoras.
-    - Lecciones aprendidas.
-6. **Anexos**
-    - Script de entrega generado.
-    - Configuraciones completas.
-    - Enlaces a repositorio de código.
-
-## 💡 **D. Consejos Clave**
-
-- **No elimines servicios**, solo sécalos correctamente.
-- **Usa variables de entorno** para secrets.
-- **Documenta cada cambio** con capturas claras.
-- **Prueba que todo sigue funcionando** tras cada modificación.
-- **Si usas HTTPS**, redirige todo HTTP a HTTPS.
-- **Para la entrega**, sigue el script del profesor al pie de la letra.
