@@ -681,6 +681,11 @@ Enviando `true` como contraseña, PHP convierte ambos valores a booleanos durant
 #### Descripción
 
 En el archivo `Book.php` identificamos que las consultas SQL no están parametrizadas correctamente. Los valores proporcionados por el usuario se concatenan directamente en la query sin validación ni escape.
+El sql injection se puede apreciar en el inicio de sesión, donde si ponemos 
+```
+`a' OR '1'='1' --`
+```
+y de contraseña cualquier cosa nos salta el sql injection. También se puede confirmar ya que salta cuando ponemos el order by 6
 
 #### Código Vulnerable
 
