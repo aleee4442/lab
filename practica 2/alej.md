@@ -1,11 +1,6 @@
-codigo paginas web
-```
-/var/www/html
-```
-
 # Todas las APPS
 ## Cambio de contraseña
-Para hacer el cambio de contraseña lo vamos a hacer usando el propio django. Para cada app tenemos que ir a donde se encuentra el codigo de cada app `cd /var/www/html/app1` y ejecutamos en venv con 
+Para hacer el cambio de contraseña lo vamos a hacer usando el propio django. Para cada app tenemos que ir a donde se encuentra el codigo de cada app `cd /var/www/html/app1` y ejecutamos el venv con 
 ```
 ./ENV/bin/python manage.py shell
 ```
@@ -26,25 +21,27 @@ Las contraseñas para cada app son:
 Una vez intentas iniciar sesión ya no funciona con admin admin y tienes que poner la contrasñea establecida
 # APP 1
 
-
-## /var/www/html/app1/app1/settings/local.py
+## Panel de administración no accesible
+Para securizar más el panel de administración hemos decidido bloquear el acceso por ip, para esto tenemos que modificar un archivo de apache encontrado en `/etc/apache2/sites-available/app1.conf` donde tenemos que añadir lo siguiente:
+```
+<Location /admin>
+	<RequireAny>
+		Require ip 127.0.0.1
+		Require ip 192.168.17.0/24
+	 </RequireAny>
+</Location>
+```
+Con esto permitimos que se pueda acceder de forma local y con las ips que nosotros asignemos, si intentas entrar con otra ip te sale lo siguiente
+![[Pasted image 20260108114434.png]]
+## Debug en el login
+Antes cuando intentabas iniciar sesión desde app1.unie/users/login independientemente de que estuviese bien o mal te saltaba un debug con información. Para cambiar esto nos tenemos que ir al archivo encontrado en `/var/www/html/app1/app1/settings/local.py`
 
 ```
 DEBUG = env.bool('DJANGO_DEBUG', default=False)
 TEMPLATES[0]['OPTIONS']['debug'] = DEBUG
 ```
-cambiado default=True por =False, ahora en vez de hacer el debug te sale **Server Error (500)** cuando intentas de hacer el login por http://app1.unie/users/login/
-## 9001
-Encontramos en `/etc/systemd/system/file-server.service` la linea que hace que se pueda acceder a traves de la web normal y no de forma local por la linea
-```
-ExecStart=/usr/bin/docker run --rm -v /opt/data:/data -p 0.0.0.0:9001:9001 --name file_server_container file_server_image
-```
-por lo que lo cambiamos por
-```
-ExecStart=/usr/bin/docker run --rm -v /opt/data:/data -p 127.0.0.1:9001:9001 --name file_server_container file_server_image
-```
-Para que solo tengamos conectividad de forma local
-![[Pasted image 20251230221549.png]]
+
+Cambiado default=True por =False, ahora en vez de hacer el debug te sale **Server Error (500)** cuando intentas de hacer el login por http://app1.unie/users/login/
 
 ## RCE UNPICKLE
 En vez de usar pickle vamos a usar **json** 
@@ -115,6 +112,30 @@ def login():
         form = form)    
 ```
 
+## APP4 (9001)
+Encontramos en `/etc/systemd/system/file-server.service` la linea que hace que se pueda acceder a traves de la web normal y no de forma local por la linea
+
+```
+ExecStart=/usr/bin/docker run --rm -v /opt/data:/data -p 0.0.0.0:9001:9001 --name file_server_container file_server_image
+```
+por lo que lo cambiamos por
+
+```
+ExecStart=/usr/bin/docker run --rm -v /opt/data:/data -p 127.0.0.1:9001:9001 --name file_server_container file_server_image
+```
+
+Para que solo tengamos conectividad de forma local
+![[Pasted image 20251230221549.png]]
+
+# Maria DB
+La base de datos estaba configurada para escuchar en todas las interfaces como se puede observar
+![[Pasted image 20260108115221.png]]
+Para modificar esto simplemente tenemos que modificar el siguiente archivo `/etc/mysql/mariadb.conf.d/50-server.cnf` y cambiar el bind address 0.0.0.0 por
+```
+bind-address = 127.0.0.1
+```
+Tras recargar apache vemos que efectivamente ahora se ha cambiado y solo escucha de forma local
+![[Pasted image 20260108115526.png]]
 
 
 
