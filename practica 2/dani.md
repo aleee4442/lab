@@ -60,7 +60,7 @@ Tras aplicar las correcciones, verificamos que:
 
 ## Evidencias Adjuntas
 
-![Cookies app 1](Cookies_app1/NMAP.png)
+![Cookies app 1](photos/Cookies_app1.png)
 
 ## Impacto de la Corrección
 
