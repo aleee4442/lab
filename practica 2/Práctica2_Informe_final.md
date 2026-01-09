@@ -1139,6 +1139,185 @@ Solo los puertos autorizados están accesibles externamente.
 - Defensa en profundidad implementada
 - Protección contra escaneos de puertos
 
+### 4. Gestión y monitorización de los logs
+Primero nos descargamos **elasticsearch** y después modificamos el `/etc/elasticsearch/elasticsearch.yml`  y añadimos esto al final
+```
+network.host: 127.0.0.1
+http.port: 9200
+xpack.security.enabled: false
+```
+Antes de guardar hay que buscar en el mismo archivo xpack.security.enabled: True y borrarlo o no poner el false y cambiar ese a false
+Ahora que tenemos esto configurado descargamos **logstash** y cambiamos el `/etc/logstash/conf.d/pipeline.conf` y añadimos
+```
+input {
+  beats {
+    port => 5044
+  }
+}
+
+filter {
+  if [message] =~ "HTTP" {
+    grok {
+      match => { "message" => "%{COMBINEDAPACHELOG}" }
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "logs-%{+YYYY.MM.dd}"
+  }
+}
+
+```
+
+Después de esto instalamos **filebeat** y modificamos `/etc/filebeat/filebeat.yml` y modificamos lo siguiente:
+```
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/apache2/access.log
+    - /var/log/apache2/error.log
+    - /var/log/auth.log
+    - /var/log/syslog
+    - /var/log/app1/*.log
+    - /var/log/app2/*.log
+    - /var/log/app3/*.log
+
+
+output.logstash:
+  hosts: ["localhost:5044"]
+```
+Además, tenemos que buscar  output elasticsearch y desactivarlo, ahora tenemos que gestionar permisos e iniciarlo
+```
+sudo usermod -aG adm filebeat
+sudo usermod -aG www-data filebeat
+sudo chmod o+r /var/log/apache2/*.log
+
+sudo systemctl enable filebeat
+sudo systemctl start filebeat
+```
+Ahora comprobamos si funciona
+![[Pasted image 20260109202805.png]]
+Ahora tenemos que preparar el loggin en los servidores. Primero vamos a `/var/www/html/app1/app1/settings/local.py` y añadimos 
+```
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/app1/app1.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'INFO',
+        },
+    },
+}
+```
+
+Tras esto añadimos la carpeta y reiniciamos apache
+```
+sudo mkdir /var/log/app1
+sudo chown www-data:www-data /var/log/app1
+sudo systemctl restart apache2
+```
+
+Para la **app2** tenemos que modificar `/etc/php/*/apache2/php.ini` y poner 
+```
+error_log = /var/log/app2/php_errors.log
+```
+
+Después generamos carpeta y modificamos permisos junto al reinicio de apache
+```
+sudo mkdir /var/log/app2
+sudo chown www-data:www-data /var/log/app2
+sudo systemctl restart apache2
+```
+
+Para la **app3** tenemos que ir a `/var/www/html/app3/app/__init__.py` y cambiarlo a lo siguiente
+```
+# -*- encoding: utf-8 -*-
+"""
+Python Aplication Template
+Licence: GPLv3
+"""
+
+from flask import Flask
+from flask_bootstrap import Bootstrap
+from flask_sqlalchemy import SQLAlchemy
+from flask_pymongo import PyMongo
+from flask_login import LoginManager
+import logging
+
+
+LOG_DIR = "/var/log/app3"
+LOG_FILE = os.path.join(LOG_DIR, "app3.log")
+
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s'
+)
+
+
+app = Flask(__name__)
+
+#Configuration of application, see configuration.py, choose one and uncomment.
+#app.config.from_object('configuration.ProductionConfig')
+app.config.from_object('app.configuration.DevelopmentConfig')
+#app.config.from_object('configuration.TestingConfig')
+
+bs = Bootstrap(app) #flask-bootstrap
+db = SQLAlchemy(app) #flask-sqlalchemy
+
+lm = LoginManager()
+lm.setup_app(app)
+lm.login_view = 'login'
+
+@app.before_request
+def log_request():
+    app.logger.info(
+        "IP=%s METHOD=%s PATH=%s",
+        request.remote_addr,
+        request.method,
+        request.path
+    )
+
+
+from app import views, models
+
+if __name__ == '__main__':
+    app.run()
+```
+Creamos y modificamos permisos de la carpeta
+```
+sudo mkdir /var/log/app3
+sudo chown www-data:www-data /var/log/app3
+```
+
+Ahora tenemos que seguir con la instalación de **grafana**. Una vez instalado vamos a http://192.168.17.130:3000/ e iniciamos sesión con admin admin. Tras esto nos pide una contraseña segura: cX-C5!U@w93s
+![[Pasted image 20260109204951.png]]
+Tras esto vamos a ajustes, data sources. Buscamos Elasticsearch y de url ponemos http://localhost:9200, index: logs-* y le damos a guardar. 
+Tras esto nos metemos a elasticserach y podemos meter una query, por ejemplo 
+```
+message:*UNION* OR message:*' OR 1=1*
+```
+ y tras mandar varias peticiones como prueba
+ ```
+ curl "http://app3.unie/login?user=a' OR '1'='1"
+ ```
+![[Pasted image 20260109210719.png]]
+vemos que funciona y que todo está establecido
+
 ---
 
 ## Resumen de Contraseñas Modificadas
@@ -1161,17 +1340,7 @@ Todas las contraseñas:
 
 ## Medidas Adicionales de Protección
 
-### 1. Gestión y Monitorización de Logs
-
-Se implementó un sistema de logging centralizado para detectar y alertar sobre posibles ataques.
-
-**Características:**
-- Logs de todas las aplicaciones centralizados
-- Monitorización de intentos de acceso fallidos
-- Alertas automáticas ante patrones sospechosos
-- Retención de logs según políticas de seguridad
-
-### 2. Recuperación ante Desastres
+### 1. Recuperación ante Desastres
 
 Se mantiene el sistema de backups automáticos mediante cronjobs:
 - Backups diarios de código y bases de datos
@@ -1179,7 +1348,7 @@ Se mantiene el sistema de backups automáticos mediante cronjobs:
 - Acceso restringido a backups
 - Procedimientos documentados de restauración
 
-### 3. Hardening Adicional
+### 2. Hardening Adicional
 
 Medidas de seguridad adicionales implementadas:
 - Cabeceras de seguridad HTTP configuradas
