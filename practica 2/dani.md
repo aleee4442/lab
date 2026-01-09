@@ -60,7 +60,7 @@ Tras aplicar las correcciones, verificamos que:
 
 ## Evidencias Adjuntas
 
-**imagen**
+![Cookies app 1](Cookies_app1/NMAP.png)
 
 ## Impacto de la Corrección
 
@@ -129,10 +129,6 @@ Tras aplicar las correcciones, verificamos mediante el navegador que:
 
 ## Evidencias Adjuntas
 
-1. **Captura de pantalla** del archivo configuration.py modificado.
-2. **Captura de configuración HTTPS** en Apache (app3-ssl.conf).
-3. **Captura de DevTools** mostrando los atributos seguros de las cookies.
-4. **Captura de acceso por HTTPS** con certificado válido.
 
 ## Impacto de la Corrección
 
@@ -443,3 +439,4 @@ lm.session_protection = "strong"  # ← Activación de protección avanzada
 1. **Cookie comparison test:** La cookie session cambia tras cada autenticación.
 2. **Session reuse test:** Cookies de sesión no autenticadas no funcionan tras login.
 3. **Multiple login test:** Cada inicio de sesión genera un ID único.
+
