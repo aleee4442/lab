@@ -27,9 +27,10 @@ return true;
 3) Verificar contraseña con password_verify en signIn()
 
 User.php → signIn()
-Sustituye la comparación de la línea 51 por:
+Sustituimos la comparación de la línea 51 por:
 
 if (password_verify($data[1], $user['passwd'])) {
   return $user['id'];
 }
 return false;
+
