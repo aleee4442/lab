@@ -128,7 +128,7 @@ Tras aplicar las correcciones, verificamos mediante el navegador que:
 4. **Redirección automática**: Todas las peticiones HTTP se redirigen a HTTPS.
 
 ## Evidencias Adjuntas
-
+![Cookies app 3](photos/Cookies_app3.png)
 
 ## Impacto de la Corrección
 
@@ -332,7 +332,7 @@ sudo systemctl restart apache2
 ## Verificación de la Corrección
 
 ### Pruebas Realizadas
-
+![Forbidden](photos/Forbidden.png)
 1. **Acceso directo a /static/ desde navegador:**
    - https://app1.unie/static/ → **403 Forbidden** (correcto), como se ve en la imagen
    - https://app2.unie/static/ → **403 Forbidden** (correcto)
@@ -439,4 +439,5 @@ lm.session_protection = "strong"  # ← Activación de protección avanzada
 1. **Cookie comparison test:** La cookie session cambia tras cada autenticación.
 2. **Session reuse test:** Cookies de sesión no autenticadas no funcionan tras login.
 3. **Multiple login test:** Cada inicio de sesión genera un ID único.
+
 
