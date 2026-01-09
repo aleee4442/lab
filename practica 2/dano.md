@@ -34,3 +34,27 @@ if (password_verify($data[1], $user['passwd'])) {
 }
 return false;
 
+13. Vulnerabilidad en el Uso del Token Bearer
+Descripción
+Una vez obtenido el token JWT mediante login (ver vulnerabilidad de compromiso total), comprobamos que añadiendo la cabecera de autorización es posible acceder a endpoints sensibles sin controles adicionales:
+
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6Ijc5OTBiMmRhLTg2NWEtMTFlZi04YzJjLTAwMGMyOTY4MjFjNSJ9.7wLA68AFPXa02q6Pl46TAxwIDvvApiOWISHjbO08P-0
+Con este token podemos acceder a:
+
+http://app2.unie/v2/users/ - Lista completa de usuarios
+http://app2.unie/v2/books/ - Información de todos los recursos
+Análisis
+El problema no es el uso de JWT en sí, sino que:
+
+Sin granularidad de permisos: El token no parece tener scopes o roles diferenciados
+Privilegios excesivos: Un solo token da acceso a todo
+Sin rate limiting: No hay límites de peticiones por token
+Sin expiración visible: El token parece válido indefinidamente
+Sin rotación: No hay mecanismo de refresh tokens
+Impacto
+Acceso masivo a datos: Con un token comprometido se accede a toda la información
+Imposibilidad de revocar accesos específicos: No hay control granular
+Escalada de privilegios: Si un token básico es comprometido, proporciona acceso total
+Exfiltración facilitada: Un atacante puede automatizar la extracción de toda la base de datos
+Ausencia de auditoría: Dificulta rastrear qué acciones realizó cada token
+
