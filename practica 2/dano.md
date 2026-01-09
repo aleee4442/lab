@@ -59,3 +59,4 @@ Exfiltración facilitada: Un atacante puede automatizar la extracción de toda l
 Ausencia de auditoría: Dificulta rastrear qué acciones realizó cada token
 
 
+
