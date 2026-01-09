@@ -1,11 +1,12 @@
 # Todas las APPS
 ## Cambio de contraseña
-Para hacer el cambio de contraseña lo vamos a hacer usando el propio django. Para cada app tenemos que ir a donde se encuentra el codigo de cada app `cd /var/www/html/app1` y ejecutamos el venv con 
+Para hacer el cambio de contraseña lo vamos a hacer usando el propio django. Para app1 tenemos que ir a donde se encuentra el codigo de cada app `cd /var/www/html/app1` y ejecutamos el venv con 
 ```
 ./ENV/bin/python manage.py shell
 ```
 
-una vez dentro de aqui ponemos lo siguiente (sin poner la misma contraseña en cada app)
+una vez dentro de aqui ponemos lo siguiente 
+
 ```
 from django.contrib.auth.hashers import make_password
 from users.models import Person
@@ -13,6 +14,17 @@ from users.models import Person
 admin_user = Person.objects.get(username='admin')  
 admin_user.password = make_password('6qxK{1?D5D3Y')
 admin_user.save()
+```
+Con esto cambiamos la contraseña para app1
+
+Para app2 y 3 tenemos que conectarnos a sql para cambiarla desde ahi, el proceso de todo es: 
+```
+sudo mysql
+USE app2_database
+update users set passwd=']2aSEja#y7d3' where name='admin';
+
+USE app3_database
+UPDATE user SET password='yXv1f=$4' WHERE user='admin';
 ```
 Las contraseñas para cada app son: 
 - **APP1**: 6qxK{1?D5D3Y
