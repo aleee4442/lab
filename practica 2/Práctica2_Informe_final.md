@@ -1549,7 +1549,7 @@ sudo /usr/local/bin/backup-system.sh
 ```
 
 **Resultado:**
-![backup_manual](photos/backup.png)
+![backup_manual](photos/Backup.png)
 
 ---
 
