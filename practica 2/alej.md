@@ -41,8 +41,8 @@ DEBUG = env.bool('DJANGO_DEBUG', default=False)
 TEMPLATES[0]['OPTIONS']['debug'] = DEBUG
 ```
 
-Cambiado default=True por =False, ahora en vez de hacer el debug te sale **Server Error (500)** cuando intentas de hacer el login por http://app1.unie/users/login/
-
+Cambiado default=True por =False, ahora en vez de hacer el debug te sale lo siguiente
+![[Pasted image 20260108120744.png]]
 ## RCE UNPICKLE
 En vez de usar pickle vamos a usar **json** 
 ### Quitamos el import pickle y añadimos el json
@@ -138,15 +138,25 @@ Tras recargar apache vemos que efectivamente ahora se ha cambiado y solo escucha
 ![[Pasted image 20260108115526.png]]
 
 
-
-
-## /var/www/html/app1/app1/settings/production.py
-
+# Firewall
+Vamos a utilizar el firewall con el comando ufw
 ```
-SESSION_COOKIE_SECURE = True
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
 ```
-
-
+Primero indicamos las normas normales donde bloqueamos todo el trafico que entre y aceptamos todo el que salga de nuestra maquina, ahora configuraremos puerto por puerto
+```
+sudo ufw allow 22/tcp      # SSH
+sudo ufw allow 80/tcp      # HTTP
+sudo ufw allow 443/tcp     # HTTPS
+sudo ufw allow 21/tcp      # FTP
+sudo ufw allow 5555/tcp    # app5
+```
+Estos son los puertos que se necesitan por lo que los ponemos en allow y ahora vamos a hacer que al puerto 9001 solo se pueda acceder de forma local (lo ponemos tambien con ufw pese a cambiar la configuracion por si acaso)
+```
+sudo ufw allow from 127.0.0.1 to any port 9001
+sudo ufw deny 9001
+```
 ## 📌 **Plan de Mitigación para Práctica 2**
 
 ### **A. Vulnerabilidades Críticas a Mitigar (según tu informe)**
