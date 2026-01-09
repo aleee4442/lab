@@ -50,6 +50,8 @@ Las correcciones se han centrado en:
 | Exposición puerto 9001 | Sistema | ✓ Corregida | Acceso solo local |
 | MariaDB expuesta | Sistema | ✓ Corregida | Bind a localhost |
 | Firewall no configurado | Sistema | ✓ Implementado | UFW con reglas específicas |
+| Monitorización y alertas de seguridad | App1, App2, App3 | ✓ Implementado | Centralización de logs con Elasticsearch y Grafana. Alertas ante SQLi, SSTI, LFI y fuerza bruta |
+
 
 ---
 
