@@ -441,3 +441,4 @@ lm.session_protection = "strong"  # ← Activación de protección avanzada
 3. **Multiple login test:** Cada inicio de sesión genera un ID único.
 
 
+
