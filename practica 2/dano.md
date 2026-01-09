@@ -63,15 +63,18 @@ Ausencia de auditoría: Dificulta rastrear qué acciones realizó cada token
 **Solución (práctica) en 3 niveles**
 
 **NIVEL 1**
+
 Nivel 1: arreglar “token infinito” y validación débil
 
 1) Añadir 3 propiedades nuevas
+
 private $issuer = 'app2.unie';
 private $audience = 'app2.unie';
 private $ttl_seconds = 900; // 15 minutos
 Por qué: para poder validar emisor/destino del token y para que el token tenga caducidad (evita “token infinito”).
 
 2) Cambios en generateJWT($data)
+
 $now = time();
 
 $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
@@ -87,6 +90,7 @@ $payload = json_encode(array_merge([
 3) Cambios exactos validateJWT($token)
 
 3.1) Validación de formato del token
+
 $token = explode('.', $token);
 
 if (count($token) !== 3) {
@@ -94,6 +98,7 @@ if (count($token) !== 3) {
 }
 
 3.2) Comparación segura de firmas
+
 $signature = $this->signature($token[0], $token[1]);
 
 if (!hash_equals($signature, $token[2])) {
@@ -101,6 +106,7 @@ if (!hash_equals($signature, $token[2])) {
 }
 
 3.3) Validar expiración y claims antes de devolver usuario
+
 $payload = json_decode($this->base64url_decode($token[1]), true);
 
 if (!$payload) {
@@ -121,12 +127,16 @@ return (object)$payload;
 
 **NIVEL 2**
 
+Nivel 2: granularidad + revocación real 
+
 1) Extender tabla users
+   
 ALTER TABLE users
   ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user',
   ADD COLUMN token_version INT NOT NULL DEFAULT 0;
 
 2) Emite token con sub, role, ver
+
 "token" => $jwt->generateJWT([
   "sub" => $user['id'],
   "role" => $user['role'],
@@ -134,6 +144,7 @@ ALTER TABLE users
 ])
 
 3) Comprueba revocación
+
 public function getTokenVersionAndRole($id)
 {
   $stm = $this->pdo->prepare("SELECT token_version, role FROM users WHERE id = ?");
@@ -142,6 +153,7 @@ public function getTokenVersionAndRole($id)
 }
 
 4) Revocar tokens cuando cambias password
+
 public function bumpTokenVersion($id)
 {
   $stm = $this->pdo->prepare("UPDATE users SET token_version = token_version + 1 WHERE id = ?");
@@ -150,6 +162,7 @@ public function bumpTokenVersion($id)
 } 
 
 **NIVEL 3**
+
 Nivel 3: autorización por endpoint + rate limiting
 
 if ($claims->role !== 'admin') {
@@ -157,6 +170,7 @@ if ($claims->role !== 'admin') {
   echo json_encode(["error" => "Forbidden"]);
   exit;
 }
+
 
 
 
