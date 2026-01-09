@@ -157,20 +157,5 @@ Estos son los puertos que se necesitan por lo que los ponemos en allow y ahora v
 sudo ufw allow from 127.0.0.1 to any port 9001
 sudo ufw deny 9001
 ```
-## 📌 **Plan de Mitigación para Práctica 2**
-
-### **A. Vulnerabilidades Críticas a Mitigar (según tu informe)**
-
-| Vulnerabilidad                                     | Mitigación Propuesta                                                        |
-| -------------------------------------------------- | --------------------------------------------------------------------------- |
-| **Cookies inseguras (HttpOnly, Secure, SameSite)** | Configurar en settings de Django y Flask, forzar HTTPS.                     |
-| **SQL Injection en App2**                          |                                                                             |
-| **SSTI en App3**                                   | Sanitizar entradas, evitar `render_template_string()` con datos de usuario. |
-| **Buffer Overflow en App5**                        | Usar funciones seguras (`fgets` en lugar de `scanf`), validar longitud.     |
-| **Permisos sudo mal configurados**                 | Restringir `sudo` al mínimo necesario, usar `visudo` para editar.           |
-| **Secret keys en código**                          | Mover a variables de entorno, usar `.env` o secret managers.                |
-| **Tráfico sin cifrar (HTTP)**                      | Implementar HTTPS con certificados autofirmados o Let's Encrypt.            |
-| **Directory listing en /static/**                  | Deshabilitar en configuración de Apache/Nginx.                              |
-| **FTP anónimo**                                    | Deshabilitar acceso anónimo, usar SFTP/SSH.                                 |
-| **Cronjobs inseguros**                             | Revisar que no expongan datos sensibles, limitar permisos.                  |
-
+Ahora haciendo nmap nos sale lo siguiente por lo que confirmamos que el firewall funciona
+![[Pasted image 20260109162540.png]]
