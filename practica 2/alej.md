@@ -26,6 +26,8 @@ update users set passwd=']2aSEja#y7d3' where name='admin';
 USE app3_database
 UPDATE user SET password='yXv1f=$4' WHERE user='admin';
 ```
+Vemos que efectivamente se cambia
+![[Pasted image 20260109170226.png]]
 Las contraseñas para cada app son: 
 - **APP1**: 6qxK{1?D5D3Y
 - **APP2**: ]2aSEja#y7d3
