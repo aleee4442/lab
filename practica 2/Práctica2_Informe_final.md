@@ -1340,24 +1340,216 @@ Todas las contraseñas:
 
 ---
 
-## Medidas Adicionales de Protección
+## Otras Medidas Adicionales de Protección
 
-### 1. Recuperación ante Desastres
+## Sistema de Recuperación ante Desastres
 
-Se mantiene el sistema de backups automáticos mediante cronjobs:
-- Backups diarios de código y bases de datos
-- Almacenamiento seguro en /opt/data
-- Acceso restringido a backups
-- Procedimientos documentados de restauración
+### Introducción
 
-### 2. Hardening Adicional
+Como parte de las medidas adicionales de protección requeridas para obtener la máxima calificación en la práctica, hemos diseñado e implementado un sistema completo de copias de seguridad y recuperación ante desastres. Este sistema garantiza la disponibilidad y resiliencia del entorno frente a fallos, ataques o pérdida de datos.
 
-Medidas de seguridad adicionales implementadas:
-- Cabeceras de seguridad HTTP configuradas
-- Rate limiting en endpoints sensibles
-- Validación estricta de entrada en todas las aplicaciones
-- Principio de mínimo privilegio aplicado
-- Segregación de responsabilidades
+### Objetivos del Sistema
+
+- **Protección de datos:** Backup completo de código fuente, bases de datos y configuraciones
+- **Automatización:** Ejecución automática sin intervención manual
+- **Retención organizada:** Política clara de retención (diaria, semanal, mensual)
+- **Verificación de integridad:** Checksums y validación de backups
+- **Recuperación rápida:** Procesos documentados para restauración
+
+### Arquitectura Implementada
+
+#### Estructura de Directorios
+
+```
+/backups/
+├── diarios/           # Backups diarios (retención: 7 días)
+├── semanales/         # Backups semanales (retención: 4 semanas)
+├── mensuales/         # Backups mensuales (retención: 3 meses)
+└── logs/              # Logs detallados con timestamp
+```
+
+#### Política de Retención
+
+| Frecuencia | Retención | Hora de Ejecución | Destino |
+|------------|-----------|-------------------|---------|
+| Diaria | 7 días | 02:00 AM | /backups/diarios/ |
+| Semanal | 4 semanas | Domingos 02:00 AM | /backups/semanales/ |
+| Mensual | 3 meses | Día 1, 02:00 AM | /backups/mensuales/ |
+
+### Componentes del Sistema
+
+#### Script Principal de Backup
+
+**Ubicación:** `/usr/local/bin/backup-system.sh`
+
+**Características implementadas:**
+
+- Backup completo de las 3 aplicaciones web (App1, App2, App3)
+- Backup de bases de datos (completo e individual por aplicación)
+- Backup de configuraciones del sistema (Apache, MySQL, systemd)
+- Generación de inventario con checksums MD5
+- Verificación automática de integridad
+- Rotación inteligente de backups antiguos
+- Logging detallado con timestamp
+
+#### Contenido de Cada Backup
+
+Cada backup contiene timestamp único (`YYYYMMDD_HHMMSS`) e incluye:
+
+```
+• app1_code.tar.gz                    # Código fuente App1 (Django)
+• app2_code.tar.gz                    # Código fuente App2 (PHP/API)  
+• app3_code.tar.gz                    # Código fuente App3 (Flask)
+• full_database_backup.sql.gz         # Backup completo MariaDB
+• app1_database_backup.sql.gz         # Backup individual App1
+• app2_database_backup.sql.gz         # Backup individual App2
+• app3_database_backup.sql.gz         # Backup individual App3
+• apache_config.tar.gz                # Configuración Apache
+• mysql_config.tar.gz                 # Configuración MySQL/MariaDB
+• systemd_services.tar.gz             # Servicios y unidades systemd
+• inventory.txt                       # Inventario, tamaños y checksums
+```
+
+#### Automatización mediante Cron
+
+Se configuraron las siguientes tareas cronológicas:
+
+```bash
+# Backup diario automático
+0 2 * * * /usr/local/bin/backup-system.sh
+
+# Rotación de logs mensual
+0 3 1 * * /usr/local/bin/rotate-backup-logs.sh
+```
+
+#### Script de Rotación de Logs
+
+**Ubicación:** `/usr/local/bin/rotate-backup-logs.sh`
+
+**Funcionalidad:**
+- Elimina logs con más de 30 días de antigüedad
+- Mantiene el directorio `/backups/logs/` organizado
+- Previene saturación de disco
+
+### Mecanismos de Seguridad Implementados
+
+#### Integridad de Datos
+
+- **Checksums MD5:** Generados para todos los archivos de backup
+- **Validación con gzip:** Detección de corrupción mediante `gzip -t`
+- **Inventario detallado:** Registro de tamaños y hashes de todos los archivos
+
+#### Control de Accesos
+
+- **Permisos restringidos:** `root:root` para directorio `/backups/`
+- **Logs seguros:** Información detallada sin datos sensibles
+- **Ejecución automática:** Sin intervención manual requerida
+
+#### Verificación Automática
+
+Cada backup incluye verificación de integridad:
+
+```bash
+# Verificación de integridad
+for file in *.tar.gz *.sql.gz; do
+    if gzip -t "$file"; then
+        log "✓ $file: INTEGRO"
+    else
+        log "✗ $file: CORRUPTO - ALERTA"
+    fi
+done
+```
+
+### Procedimientos de Restauración
+
+#### Restauración Completa del Sistema
+
+**Paso 1: Restaurar código fuente**
+
+```bash
+tar -xzf app1_code.tar.gz -C /var/www/html/
+tar -xzf app2_code.tar.gz -C /var/www/html/
+tar -xzf app3_code.tar.gz -C /var/www/html/
+```
+
+**Paso 2: Restaurar bases de datos**
+
+```bash
+gunzip full_database_backup.sql.gz
+mysql -u root -p < full_database_backup.sql
+```
+
+**Paso 3: Restaurar configuraciones**
+
+```bash
+tar -xzf apache_config.tar.gz -C /etc/
+tar -xzf mysql_config.tar.gz -C /etc/
+tar -xzf systemd_services.tar.gz -C /etc/systemd/
+```
+
+**Paso 4: Reiniciar servicios**
+
+```bash
+systemctl restart apache2 mariadb
+systemctl daemon-reload
+```
+
+#### Restauración Parcial (por aplicación)
+
+**Ejemplo: Restaurar solo App1**
+
+```bash
+# Restaurar código
+tar -xzf app1_code.tar.gz -C /var/www/html/
+
+# Restaurar base de datos
+gunzip app1_database_backup.sql.gz
+mysql -u app1_user -p app1_database < app1_database_backup.sql
+
+# Reiniciar Apache
+systemctl restart apache2
+```
+
+**Ejemplo: Restaurar solo App2**
+
+```bash
+# Restaurar código
+tar -xzf app2_code.tar.gz -C /var/www/html/
+
+# Restaurar base de datos
+gunzip app2_database_backup.sql.gz
+mysql -u app2_user -p app2_database < app2_database_backup.sql
+
+# Reiniciar Apache
+systemctl restart apache2
+```
+
+**Ejemplo: Restaurar solo App3**
+
+```bash
+# Restaurar código
+tar -xzf app3_code.tar.gz -C /var/www/html/
+
+# Restaurar base de datos
+gunzip app3_database_backup.sql.gz
+mysql -u app3_user -p app3_database < app3_database_backup.sql
+
+# Reiniciar Apache
+systemctl restart apache2
+```
+
+### Pruebas Realizadas
+
+#### Prueba de Backup Manual
+
+**Comando ejecutado:**
+
+```bash
+sudo /usr/local/bin/backup-system.sh
+```
+
+**Resultado:**
+![backup_manual](photos/backup.png)
 
 ---
 
@@ -1435,8 +1627,7 @@ Se han mitigado exitosamente todas las vulnerabilidades identificadas en la prá
 Además de corregir las vulnerabilidades, se implementaron:
 - Firewall con reglas específicas (UFW)
 - Sistema de logging y monitorización
-- Gestión de backups automatizada
-- Hardening general del sistema
+- Gestión de backups
 
 ### Cumplimiento de Requisitos
 
